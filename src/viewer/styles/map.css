@@ -1,0 +1,283 @@
+/* TripCode viewer — map: pins, labels, controls, legend, Google preview.
+   Owner: map worker. Tokens and shared controls live in ../styles.css. */
+
+/* ---------- map ---------- */
+.map-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.svgmap,
+.gmap {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--map-bg);
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.svgmap:active {
+  cursor: grabbing;
+}
+/* Narrow/touch: one finger scrolls the page, two fingers move the map (handled in SvgMap). */
+.svgmap.locked {
+  touch-action: pan-x pan-y;
+}
+.map-recenter {
+  position: absolute;
+  bottom: calc(var(--gap) + 4px);
+  transform: translateX(-50%);
+  height: 34px;
+  padding: 0 16px;
+  border: 1px solid var(--border-2);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  z-index: 6;
+}
+.map-recenter:hover {
+  background: var(--surface-3);
+}
+.map-hint {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.78);
+  color: var(--text);
+  font-size: 13px;
+  pointer-events: none;
+  z-index: 6;
+}
+.pin-cluster {
+  cursor: pointer;
+}
+.svgmap svg {
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+.pin-hit {
+  cursor: pointer;
+  outline: none;
+}
+.pin-hit:focus-visible .pin circle:first-child,
+.pin-hit:focus-visible .pin rect {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+.pin-label {
+  fill: var(--text);
+  stroke: var(--map-bg);
+  stroke-width: 4px;
+  paint-order: stroke;
+  pointer-events: visiblePainted;
+  cursor: pointer;
+  font-weight: 500;
+}
+.pin-text {
+  pointer-events: none;
+  user-select: none;
+}
+.map-ctrl {
+  position: absolute;
+  right: var(--gap);
+  bottom: var(--gap);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+  z-index: 5;
+}
+.map-ctrl button {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 15px;
+}
+.map-ctrl button + button {
+  border-top: 1px solid var(--border);
+}
+.map-ctrl button:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+.map-badge {
+  position: absolute;
+  right: calc(var(--gap) + 48px);
+  bottom: calc(var(--gap) + 2px);
+  font-size: 11px;
+  color: var(--faint);
+  pointer-events: none;
+  z-index: 5;
+}
+.map-attrib {
+  position: absolute;
+  right: calc(var(--gap) + 48px);
+  bottom: calc(var(--gap) + 2px);
+  font-size: 10.5px;
+  color: var(--faint);
+  text-decoration: none;
+  z-index: 5;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.map-attrib:hover {
+  color: var(--text);
+}
+.tiles image {
+  image-rendering: auto;
+}
+.map-mode {
+  position: absolute;
+  top: var(--gap);
+  z-index: 8;
+  background: var(--surface);
+}
+.gpreview {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding-top: 56px;
+  background: var(--bg);
+  z-index: 7;
+}
+.gpreview iframe {
+  flex: 1 1 auto;
+  width: 100%;
+  border: 0;
+}
+.gpreview-bar {
+  position: absolute;
+  right: var(--gap);
+  top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 14px;
+  font-size: 12px;
+  color: var(--muted);
+  z-index: 6;
+  white-space: nowrap;
+}
+.map-empty,
+.map-warn {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--faint);
+}
+.map-warn {
+  top: 24px;
+  transform: translateX(-50%);
+  background: var(--warn-soft);
+  color: var(--warn);
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  z-index: 6;
+}
+.legend-wrap {
+  position: absolute;
+  right: calc(var(--gap) + 48px);
+  bottom: calc(var(--gap) + 24px);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.legend-btn {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+.legend-btn:hover,
+.legend-btn[aria-expanded='true'] {
+  color: var(--text);
+}
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pin-legend {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--day-1);
+  color: var(--on-day-1);
+  border-radius: 50%;
+}
+.pin-legend.unconfirmed,
+.pin-legend.discuss,
+.pin-legend.accepted,
+.pin-legend.rejected {
+  border-radius: 6px;
+}
+.pin-legend.unconfirmed {
+  background: transparent;
+  color: var(--muted);
+  border: 1.5px dashed var(--muted);
+}
+.pin-legend.discuss {
+  background: var(--discuss);
+  color: var(--on-discuss);
+}
+.pin-legend.accepted {
+  background: var(--accept);
+  color: var(--on-accept);
+}
+.pin-legend.rejected {
+  background: var(--surface-3);
+  color: var(--faint);
+}
+.pin-legend.cluster {
+  background: var(--muted);
+  color: #000000;
+  box-shadow: 0 0 0 3px rgba(168, 168, 174, 0.25);
+}
+.pin-legend.dashed {
+  background: none;
+  border-radius: 0;
+  border-top: 2px dashed var(--muted);
+  height: 0;
+  align-self: center;
+}
+

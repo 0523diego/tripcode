@@ -1,0 +1,77 @@
+/* TripCode viewer — editing in place: undo / redo buttons and the click-to-edit fields in the itinerary.
+   Tokens and shared controls live in ../styles.css. */
+
+/* The header row now holds brand, trip picker, undo / redo and the AI button: the picker is the one that gives. */
+.rail-top .brand {
+  flex: none;
+  white-space: nowrap;
+}
+.rail-top .trip-pick {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: 0;
+}
+.rail-top .trip-pick select {
+  width: 100%;
+  max-width: none;
+  text-overflow: ellipsis;
+}
+
+.undo-redo {
+  display: inline-flex;
+  flex: none;
+  padding: 2px;
+  border: 1px solid var(--border-2);
+  border-radius: 999px;
+}
+.undo-redo button {
+  width: 26px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.undo-redo button:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.undo-redo button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* A row whose title or time is being edited is a <div> styled like the row's button. */
+.it.editing {
+  cursor: default;
+}
+.inline-edit {
+  width: 100%;
+  min-width: 0;
+  padding: 1px 6px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  line-height: inherit;
+}
+.inline-edit:focus {
+  outline: 0;
+}
+.inline-edit.invalid {
+  border-color: var(--err);
+  background: var(--err-soft);
+}
+time .inline-edit {
+  width: 5.2em;
+  padding: 1px 4px;
+  font-variant-numeric: tabular-nums;
+}
+.it .it-title[title],
+.it time[title] {
+  cursor: text;
+}

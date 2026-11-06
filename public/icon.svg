@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="TripCode">
+  <rect width="512" height="512" rx="112" fill="#2563eb"/>
+  <path d="M96 392 Q176 248 256 300 T416 120" fill="none" stroke="#ffffff" stroke-width="28" stroke-linecap="round" stroke-dasharray="6 54"/>
+  <circle cx="96" cy="392" r="34" fill="#ffffff"/>
+  <path d="M416 72c-44 0-80 34-80 78 0 58 80 134 80 134s80-76 80-134c0-44-36-78-80-78z" fill="#ffffff"/>
+  <circle cx="416" cy="150" r="26" fill="#2563eb"/>
+  <text x="256" y="470" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="60" font-weight="700" fill="#ffffff">&lt;/&gt;</text>
+</svg>

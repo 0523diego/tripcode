@@ -1,0 +1,735 @@
+/* TripCode viewer — step 0 (找方向): the idea page (src/viewer/idea/) and its card on the home page.
+   A globe fills the page; the question card floats over the left column (where the day list appears later) and the AI
+   panel is docked on the right. Always dark space, whatever the app theme. Tokens live in ../styles.css. */
+
+.idea-page {
+  --glass: rgba(9, 13, 26, 0.64);
+  --glass-2: rgba(255, 255, 255, 0.07);
+  --glass-3: rgba(255, 255, 255, 0.14);
+  --glass-line: rgba(255, 255, 255, 0.16);
+  --glass-text: #f5f7fc;
+  --glass-muted: rgba(235, 240, 255, 0.68);
+  --idea-gold: #ffb54a;
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: #02040b;
+  color: var(--glass-text);
+  color-scheme: dark;
+}
+.idea-globe {
+  position: absolute;
+  inset: 0;
+  /* The engine gives pins z-index 100–200; make the globe its own stacking context so they never paint over the cards or the AI panel. */
+  z-index: 0;
+  isolation: isolate;
+}
+
+/* ---------- left column ---------- */
+.idea-col {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 456px;
+  max-width: 100%;
+  padding: 20px 16px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  /* the column itself lets clicks through to the globe; only its contents catch them */
+  pointer-events: none;
+}
+.idea-col > * {
+  pointer-events: auto;
+}
+.idea-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.8);
+}
+.idea-head h1 {
+  font-size: 30px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.idea-back {
+  color: var(--glass-muted);
+  font-size: 13px;
+  text-decoration: none;
+  padding: 2px 0;
+}
+.idea-back:hover {
+  color: #fff;
+}
+
+/* answered questions */
+.idea-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.idea-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 28px;
+  padding: 3px 12px;
+  border: 1px solid var(--glass-line);
+  border-radius: 999px;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  color: var(--glass-text);
+  font-size: 12.5px;
+  line-height: 1.35;
+  text-align: left;
+}
+button.idea-chip {
+  cursor: pointer;
+  transition: background 140ms, border-color 140ms;
+}
+button.idea-chip:hover,
+button.idea-chip[aria-current='step'] {
+  background: var(--glass-3);
+  border-color: rgba(255, 255, 255, 0.42);
+}
+.idea-chip--fixed {
+  color: var(--glass-muted);
+}
+
+/* ---------- the card ---------- */
+.idea-col > * {
+  flex: none;
+}
+.idea-swap {
+  animation: idea-in 240ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes idea-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+.idea-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 22px 20px;
+  border: 1px solid var(--glass-line);
+  border-radius: 22px;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(22px) saturate(1.25);
+  backdrop-filter: blur(22px) saturate(1.25);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+.idea-card__title {
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  outline: none;
+}
+.idea-card__lead {
+  margin-top: -8px;
+  color: var(--glass-muted);
+  font-size: 14px;
+}
+.idea-card__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  min-height: 0;
+}
+.idea-card__foot:empty {
+  display: none;
+}
+.idea-state {
+  padding: 14px 4px;
+  color: var(--glass-muted);
+}
+.idea-opening {
+  font-size: 18px;
+  color: var(--glass-text);
+}
+
+.idea-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.idea-row {
+  display: flex;
+  gap: 12px;
+}
+.idea-row--center {
+  align-items: center;
+  justify-content: space-between;
+}
+.idea-label {
+  font-size: 14px;
+  color: var(--glass-muted);
+}
+
+/* fields */
+.idea-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.idea-field--grow {
+  flex: 1;
+}
+.idea-field > span {
+  font-size: 13px;
+  color: var(--glass-muted);
+}
+.idea-page input,
+.idea-page select {
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--glass-line);
+  border-radius: 12px;
+  background: var(--glass-2);
+  color: var(--glass-text);
+  font-size: 16px;
+}
+.idea-page input::placeholder {
+  color: rgba(235, 240, 255, 0.42);
+}
+.idea-page input:hover,
+.idea-page select:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.idea-page input:focus,
+.idea-page select:focus {
+  border-color: rgba(255, 255, 255, 0.7);
+  background: var(--glass-3);
+}
+.idea-page input[aria-invalid='true'] {
+  border-color: var(--err);
+}
+.idea-note {
+  min-height: 1.4em;
+  margin-top: -6px;
+  color: var(--glass-muted);
+  font-size: 13px;
+}
+.idea-error {
+  color: #ff9d9d;
+  font-size: 13px;
+}
+.idea-hint {
+  color: var(--glass-muted);
+  font-size: 13px;
+}
+
+/* buttons */
+.idea-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: #05070f;
+  font-size: 16px;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 140ms, transform 140ms;
+}
+.idea-primary:hover:not(:disabled) {
+  background: #dfe6f7;
+}
+.idea-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.idea-primary:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.idea-primary--big {
+  min-height: 56px;
+  font-size: 18px;
+}
+.idea-ghost {
+  min-height: 44px;
+  padding: 0 20px;
+  border: 1px solid var(--glass-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--glass-text);
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 140ms, border-color 140ms;
+}
+.idea-ghost:hover:not(:disabled) {
+  background: var(--glass-3);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.idea-ghost:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.idea-ghost--wide {
+  width: 100%;
+}
+.idea-quiet,
+.idea-link {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--glass-muted);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(255, 255, 255, 0.25);
+}
+.idea-quiet:hover:not(:disabled),
+.idea-link:hover {
+  color: #fff;
+}
+.idea-quiet:disabled {
+  opacity: 0.4;
+}
+.idea-link {
+  font-size: inherit;
+  color: var(--glass-text);
+}
+
+/* big tiles */
+.idea-tiles {
+  display: grid;
+  gap: 10px;
+}
+.idea-tiles--2 {
+  grid-template-columns: 1fr 1fr;
+}
+.idea-tiles--chips,
+.idea-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.idea-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 72px;
+  padding: 16px 18px;
+  border: 1px solid var(--glass-line);
+  border-radius: 16px;
+  background: var(--glass-2);
+  color: var(--glass-text);
+  font-size: 17px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 140ms, border-color 140ms, transform 140ms;
+}
+.idea-tile small {
+  color: var(--glass-muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+.idea-tile:hover {
+  background: var(--glass-3);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.idea-tile[aria-pressed='true'],
+.idea-toggle[aria-pressed='true'] {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+}
+.idea-toggle {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--glass-line);
+  border-radius: 999px;
+  background: var(--glass-2);
+  color: var(--glass-text);
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 140ms, border-color 140ms;
+}
+.idea-toggle:hover {
+  background: var(--glass-3);
+}
+.idea-months {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.idea-months .idea-toggle {
+  padding: 0;
+  border-radius: 12px;
+}
+.idea-seg {
+  display: flex;
+  gap: 8px;
+}
+.idea-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.idea-stepper button {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--glass-line);
+  border-radius: 50%;
+  background: var(--glass-2);
+  color: var(--glass-text);
+  font-size: 20px;
+  cursor: pointer;
+}
+.idea-stepper button:hover:not(:disabled) {
+  background: var(--glass-3);
+}
+.idea-stepper button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.idea-stepper output {
+  min-width: 40px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* recap, summary */
+.idea-recap {
+  color: var(--glass-muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.idea-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--glass-2);
+}
+.idea-summary strong {
+  font-size: 20px;
+}
+.idea-summary span {
+  color: var(--glass-muted);
+  font-size: 14px;
+}
+
+/* AI is working */
+.idea-thinking {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  color: var(--glass-text);
+  font-size: 16px;
+}
+.idea-thinking__dots {
+  display: inline-flex;
+  gap: 5px;
+}
+.idea-thinking__dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--idea-gold);
+  animation: idea-dot 1.2s ease-in-out infinite;
+}
+.idea-thinking__dots i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.idea-thinking__dots i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes idea-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* place cards (choose step) */
+.idea-places {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.idea-place {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 16px 14px;
+  border: 1px solid var(--glass-line);
+  border-radius: 16px;
+  background: var(--glass-2);
+  transition: background 140ms, border-color 140ms;
+}
+.idea-place:hover,
+.idea-place:focus-within,
+.idea-place[data-picked='true'] {
+  background: var(--glass-3);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+.idea-place[data-chosen='true'] {
+  border-color: var(--idea-gold);
+}
+.idea-place header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+.idea-place h3 {
+  font-size: 19px;
+  font-weight: 650;
+}
+.idea-place__meta {
+  color: var(--glass-muted);
+  font-size: 13px;
+}
+.idea-place__why {
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+.idea-place__facts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  color: var(--glass-muted);
+  font-size: 13px;
+}
+.idea-place__facts a {
+  color: var(--glass-text);
+}
+.idea-place__source {
+  margin-left: 4px;
+}
+.idea-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 7px;
+  border: 1px solid rgba(255, 181, 74, 0.55);
+  border-radius: 999px;
+  color: var(--idea-gold);
+  font-size: 11px;
+  line-height: 18px;
+}
+.idea-place__actions {
+  display: flex;
+  gap: 8px;
+}
+.idea-place__actions .idea-primary {
+  min-height: 42px;
+  font-size: 15px;
+  flex: 1;
+}
+.idea-place__actions .idea-ghost {
+  min-height: 42px;
+}
+
+/* ---------- AI panel (docked right) / its button ---------- */
+.idea-agent {
+  position: absolute;
+  z-index: 6;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  width: 340px;
+}
+.idea-agent .agent {
+  position: absolute;
+  inset: 0;
+  width: auto;
+}
+.idea-agent-btn {
+  position: absolute;
+  z-index: 6;
+  top: 16px;
+  right: 16px;
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--glass-line);
+  border-radius: 999px;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  color: var(--glass-text);
+  font-size: 14px;
+  cursor: pointer;
+}
+.idea-agent-btn:hover {
+  background: var(--glass-3);
+}
+
+/* the trip is being opened */
+.idea-page[data-leaving='true'] .idea-col,
+.idea-page[data-leaving='true'] .idea-agent,
+.idea-page[data-leaving='true'] .idea-agent-btn {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 500ms;
+}
+
+.idea-opening {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .idea-swap,
+  .idea-thinking__dots i {
+    animation: none;
+  }
+  .idea-page * {
+    transition: none !important;
+  }
+}
+
+/* ---------- narrow screens: globe on top, card below, AI panel as a sheet ---------- */
+@media (max-width: 767px) {
+  .idea-globe {
+    inset: 0 0 auto 0;
+    height: 40%;
+    height: 40dvh;
+  }
+  .idea-col {
+    top: 40dvh;
+    top: 40%;
+    width: auto;
+    right: 0;
+    padding: 14px 14px 28px;
+    border-radius: 22px 22px 0 0;
+    background: linear-gradient(to bottom, rgba(2, 4, 11, 0.9), #02040b 40px);
+    pointer-events: auto;
+  }
+  .idea-head {
+    flex-direction: row;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    text-shadow: none;
+  }
+  .idea-head h1 {
+    font-size: 22px;
+  }
+  .idea-card {
+    padding: 20px 16px 16px;
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .idea-months {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .idea-agent {
+    position: fixed;
+    inset: 0;
+    width: auto;
+    z-index: 30;
+    padding: 8px;
+    background: rgba(2, 4, 11, 0.6);
+  }
+  .idea-agent .agent {
+    inset: 8px;
+  }
+  .idea-agent-btn {
+    top: calc(40% - 52px);
+    top: calc(40dvh - 52px);
+  }
+}
+
+/* ---------- home page: the idea in progress ---------- */
+.home-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.idea-home-card {
+  position: relative;
+  min-height: 218px;
+  border-color: rgba(120, 160, 255, 0.28);
+  background:
+    radial-gradient(1.5px 1.5px at 18% 24%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(1px 1px at 72% 18%, rgba(255, 255, 255, 0.8), transparent 60%),
+    radial-gradient(1px 1px at 84% 62%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(1.5px 1.5px at 40% 78%, rgba(255, 255, 255, 0.6), transparent 60%),
+    radial-gradient(120px 120px at 86% 108%, rgba(80, 140, 255, 0.55), rgba(20, 50, 120, 0.25) 55%, transparent 72%),
+    #04070f;
+  color: #f5f7fc;
+}
+.idea-home-card:hover {
+  color: #fff;
+  border-color: rgba(160, 190, 255, 0.55);
+}
+.idea-home-card__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px 20px 20px;
+}
+.idea-home-card__badge {
+  padding: 1px 10px;
+  border: 1px solid rgba(255, 181, 74, 0.6);
+  border-radius: 999px;
+  color: #ffb54a;
+  font-size: 12px;
+}
+.idea-home-card h2 {
+  font-size: 22px;
+  font-weight: 650;
+}
+.idea-home-card__next {
+  color: rgba(235, 240, 255, 0.7);
+  font-size: 13px;
+}
+.idea-home-card__chips {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.idea-home-card__chips li {
+  padding: 2px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 12px;
+}
+@media (max-width: 600px) {
+  .home-head {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}

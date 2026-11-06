@@ -1,0 +1,361 @@
+/* TripCode viewer — itinerary list and drag-to-reorder.
+   Owner: itinerary worker. Tokens and shared controls live in ../styles.css. */
+
+/* ---------- itinerary (行程 tab) ---------- */
+/* --tcol: width of the time column. Days with no times at all collapse it (.notimes). */
+.day-block {
+  --tcol: 44px;
+}
+.day-block.notimes {
+  --tcol: 0px;
+}
+.day-block + .day-block {
+  margin-top: 28px;
+}
+.day-head {
+  padding: 14px 0 10px;
+}
+.day-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--faint);
+  letter-spacing: 0.04em;
+}
+.day-kicker .swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--day-color);
+}
+.day-name {
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.day-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 6px;
+  font-size: 12px;
+}
+.day-links a {
+  text-decoration: none;
+}
+.itin {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+.itin::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--tcol) + 13px);
+  top: 14px;
+  bottom: 14px;
+  width: 1px;
+  background: var(--border-2);
+}
+.it {
+  display: grid;
+  grid-template-columns: var(--tcol) 26px minmax(0, 1fr);
+  align-items: start;
+  width: 100%;
+  padding: 8px 8px 8px 0;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+}
+.it:hover {
+  background: var(--surface-2);
+}
+.it.sel {
+  background: var(--surface-3);
+}
+.it time {
+  font-size: 12.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  padding-top: 1px;
+}
+.it .node {
+  justify-self: center;
+  margin-top: 5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--muted);
+  box-shadow: 0 0 0 3px var(--surface);
+  position: relative;
+  z-index: 1;
+}
+.it.sel .node {
+  box-shadow: 0 0 0 3px var(--surface-3), 0 0 0 5px var(--accent);
+}
+/* 已確定: solid day-colour node + a bar on the row's left edge. */
+.it.locked .node {
+  margin-top: 3px;
+  width: 13px;
+  height: 13px;
+  background: var(--day-color);
+  border: 0;
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 4px var(--day-color);
+}
+.it.locked.sel .node {
+  box-shadow: 0 0 0 3px var(--surface-3), 0 0 0 5px var(--accent);
+}
+.it.locked::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--day-color);
+}
+.it.locked time {
+  color: var(--text);
+  font-weight: 600;
+}
+.it.locked .it-title {
+  font-weight: 650;
+}
+/* No time yet: the empty time cell is just dead space, so show a quiet dash instead. */
+.it.untimed:not(.locked) .it-title {
+  color: var(--muted);
+  font-weight: 500;
+}
+.it.untimed:not(.locked) .node {
+  border-color: var(--faint);
+}
+.it-main {
+  min-width: 0;
+}
+.it-title {
+  display: block;
+  font-weight: 550;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.it-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--faint);
+}
+.it-transit {
+  display: grid;
+  grid-template-columns: var(--tcol) 26px minmax(0, 1fr);
+  width: 100%;
+  padding: 2px 8px 2px 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-size: 12px;
+  color: var(--faint);
+  cursor: pointer;
+  border-radius: 8px;
+}
+.it-transit:hover {
+  color: var(--muted);
+  background: var(--surface-2);
+}
+.it-transit.sel {
+  color: var(--text);
+  background: var(--surface-3);
+}
+.it-transit .t-mode {
+  color: var(--muted);
+}
+.it-transit .t-dur {
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.it-transit .t-dur.est {
+  color: var(--faint);
+  font-weight: 450;
+  border-bottom: 1px dotted var(--faint);
+  cursor: help;
+}
+.it-transit .t-text {
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.it-transit time {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.it-transit .tnode {
+  justify-self: center;
+  width: 5px;
+  height: 5px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: var(--transit);
+  position: relative;
+  z-index: 1;
+}
+.it-gap {
+  display: grid;
+  grid-template-columns: var(--tcol) 26px minmax(0, 1fr);
+  width: 100%;
+  padding: 4px 8px 4px 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-size: 12px;
+  color: var(--faint);
+  cursor: pointer;
+  border-radius: 8px;
+}
+.it-gap span:last-child {
+  border: 1px dashed var(--border-2);
+  border-radius: 8px;
+  padding: 4px 10px;
+}
+.it-gap:hover span:last-child,
+.it-gap.sel span:last-child {
+  color: var(--text);
+  border-color: var(--muted);
+}
+.it-gap.tail span:last-child {
+  border-style: dashed;
+  color: var(--muted);
+}
+.day-empty {
+  color: var(--faint);
+  font-size: 13px;
+  padding: 8px 0 0 calc(var(--tcol) + 26px);
+}
+
+/* drag to reorder */
+.drow {
+  position: relative;
+}
+.grip {
+  position: absolute;
+  left: -18px;
+  top: 6px;
+  width: 18px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--faint);
+  font-size: 11px;
+  letter-spacing: -2px;
+  cursor: grab;
+  opacity: 0;
+  touch-action: none;
+  z-index: 2;
+  transition: opacity 120ms;
+}
+.drow:hover .grip,
+.grip:focus-visible,
+.is-dragging .grip {
+  opacity: 1;
+}
+.grip:hover {
+  color: var(--text);
+  background: var(--surface-3);
+}
+.grip:active {
+  cursor: grabbing;
+}
+@media (hover: none) {
+  .grip {
+    opacity: 1;
+  }
+}
+.drow.dragging > button {
+  opacity: 0.35;
+}
+.is-dragging {
+  user-select: none;
+  cursor: grabbing;
+}
+.day-block {
+  position: relative;
+}
+.drop-line {
+  position: absolute;
+  left: var(--tcol);
+  right: 0;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+  z-index: 3;
+}
+.drop-line::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.drag-ghost {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pending-node {
+  background: transparent !important;
+  border: 2px dashed var(--accept);
+}
+.pending-tag {
+  color: var(--ok);
+  background: var(--ok-soft);
+}
+
+
+/* candidate source links */
+.cand-src {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin: -2px 0 6px 30px;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+.cand-src a {
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+  white-space: nowrap;
+}
+.cand-src a:hover {
+  text-decoration: underline;
+}

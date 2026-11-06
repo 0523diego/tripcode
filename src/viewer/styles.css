@@ -1,0 +1,272 @@
+/* TripCode viewer — all-black, map-first. Tokens, shell and shared controls.
+   Every color is a variable; the section stylesheets live in ./styles/ and are imported by main.tsx
+   in cascade order (print last). Keep :root here — model.test.ts reads it for contrast checks. */
+:root {
+  color-scheme: dark;
+  --bg: #000000;
+  --surface: #0c0c0d;
+  --surface-2: #151517;
+  --surface-3: #1e1e21;
+  --text: #ededed;
+  --muted: #a8a8ae;
+  --faint: #85858b;
+  --border: #1f1f22;
+  --border-2: #2d2d31;
+  --accent: #ffffff;
+  --accent-soft: rgba(255, 255, 255, 0.08);
+  --on-accent: #000000;
+  --ok: #4ade80;
+  --ok-soft: rgba(74, 222, 128, 0.12);
+  --warn: #fbbf24;
+  --warn-soft: rgba(251, 191, 36, 0.12);
+  --err: #f87171;
+  --err-soft: rgba(248, 113, 113, 0.12);
+  --discuss: #c4b5fd;
+  --accept: #4ade80;
+  --transit: #3f3f45;
+  --map-bg: #000000;
+  --map-grid: #0f0f11;
+  --pin-edge: #000000;
+  --day-1: #7aa2ff;
+  --day-2: #ffa271;
+  --day-3: #5fd49a;
+  --day-4: #ff86bd;
+  --day-5: #4fd1c5;
+  --day-6: #e9c15e;
+  --day-7: #b6a1ff;
+  --day-8: #ff8f8f;
+  --on-day-1: #000000;
+  --on-day-2: #000000;
+  --on-day-3: #000000;
+  --on-day-4: #000000;
+  --on-day-5: #000000;
+  --on-day-6: #000000;
+  --on-day-7: #000000;
+  --on-day-8: #000000;
+  --on-discuss: #000000;
+  --on-accept: #000000;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --rail-w: 384px;
+  --gap: 12px;
+  --font: 'Inter', system-ui, -apple-system, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.muted {
+  color: var(--muted);
+}
+.empty {
+  padding: 48px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ---------- controls ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border-2);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms, border-color 120ms;
+}
+.btn:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+.btn.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+.btn.primary:hover:not(:disabled) {
+  background: #d9d9d9;
+}
+.btn.danger {
+  color: var(--err);
+}
+.btn.danger.on {
+  background: var(--err);
+  border-color: var(--err);
+  color: #000;
+}
+.btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+button.link {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+  font-size: 12px;
+}
+button.link:hover {
+  color: var(--text);
+}
+a {
+  color: var(--muted);
+}
+a:hover {
+  color: var(--text);
+}
+input,
+select,
+textarea {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  min-width: 0;
+  transition: border-color 120ms, background 120ms;
+}
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--border-2);
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--muted);
+  background: var(--surface-3);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--faint);
+}
+input[type='time']::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+}
+textarea {
+  width: 100%;
+  resize: vertical;
+  display: block;
+  line-height: 1.5;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+.pill::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pill.ok {
+  color: var(--ok);
+}
+.pill.warn {
+  color: var(--warn);
+}
+.pill.err {
+  color: var(--err);
+}
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  line-height: 18px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  color: var(--muted);
+  font-style: normal;
+  white-space: nowrap;
+}
+.tag.lock {
+  color: var(--text);
+}
+.tag.weather {
+  color: var(--warn);
+  background: var(--warn-soft);
+}
+
+/* ---------- app shell: full-bleed map + floating rail ---------- */
+.app {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+}
+.map-layer {
+  position: absolute;
+  inset: 0;
+}
+.map-layer .map-panel {
+  height: 100%;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+}
+

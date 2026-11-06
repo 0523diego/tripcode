@@ -1,0 +1,31 @@
+{
+  "name": "tripcode",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Open-source AI travel planner: trips are files, Claude Code edits them, a local viewer renders daily route maps.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "check": "node --env-file-if-exists=.env cli/tripcode.ts check",
+    "new-trip": "node --env-file-if-exists=.env cli/tripcode.ts new",
+    "tripcode": "node --env-file-if-exists=.env cli/tripcode.ts",
+    "test": "node --test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "6.0.3",
+    "vite": "8.3.4"
+  }
+}

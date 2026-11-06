@@ -1,0 +1,573 @@
+/* TripCode viewer — agent panel (src/viewer/agent/AgentPanel.tsx): Claude Code chat beside the map.
+   Takes the detail card's slot on the right (the detail card hides while it is open); full screen on mobile.
+   Tokens and shared controls live in ../styles.css. */
+
+.agent {
+  position: absolute;
+  top: var(--gap);
+  right: var(--gap);
+  bottom: var(--gap);
+  width: 340px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.agent > * {
+  flex: 0 0 auto;
+}
+
+/* rail header tools: undo / redo (inline.css section below) and the AI 助手 button */
+.rail-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex: none;
+}
+/* open button, in the rail header */
+.agent-open {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--border-2);
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.agent-open:hover,
+.agent-open[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.agent-open .dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--ok);
+  vertical-align: 1px;
+  animation: ag-pulse 1.2s ease-in-out infinite;
+}
+
+.ag-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 14px 10px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.ag-title {
+  min-width: 0;
+}
+.ag-title h2 {
+  font-size: 15px;
+  font-weight: 600;
+}
+.ag-sub {
+  display: block;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ag-head-actions {
+  display: flex;
+  gap: 2px;
+  flex: none;
+}
+.ag-icon {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ag-icon:hover:not(:disabled),
+.ag-icon[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.ag-icon:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.ag-note {
+  padding: 16px 18px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.ag-note.err,
+.ag-error {
+  color: var(--err);
+}
+
+/* connect view */
+.ag-connect {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  overflow-y: auto;
+}
+.ag-connect h3 {
+  font-size: 15px;
+}
+.ag-connect p,
+.ag-checks {
+  font-size: 13px;
+  color: var(--muted);
+}
+.ag-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
+.ag-checks .ok {
+  color: var(--ok);
+}
+.ag-checks .warn {
+  color: var(--warn);
+}
+.ag-connect code,
+.ag-note code,
+.ag-empty code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  font-size: 12px;
+}
+.ag-install-error {
+  max-height: 160px;
+  margin: 0;
+  padding: 10px;
+  overflow: auto;
+  border: 1px solid var(--err);
+  border-radius: var(--radius-sm);
+  background: var(--err-soft);
+  color: var(--err);
+  font-size: 11px;
+  white-space: pre-wrap;
+}
+.ag-connect-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* history */
+.ag-history {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  list-style: none;
+}
+.ag-history li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--radius-sm);
+}
+.ag-history li.on {
+  background: var(--accent-soft);
+}
+.ag-hist-open {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.ag-hist-title,
+.ag-hist-meta {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ag-hist-title {
+  font-size: 13px;
+}
+.ag-hist-meta {
+  font-size: 11px;
+  color: var(--faint);
+}
+
+/* transcript */
+.ag-transcript {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  padding: 14px 14px 8px;
+  overflow-y: auto;
+}
+.ag-transcript > * {
+  flex: 0 0 auto;
+}
+.ag-empty {
+  padding: 4px 4px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.ag-empty ul {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--faint);
+}
+.ag-msg {
+  position: relative;
+  font-size: 13.5px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.ag-user {
+  align-self: flex-end;
+  max-width: 88%;
+  padding: 8px 12px;
+  border-radius: 12px 12px 4px 12px;
+  background: var(--surface-3);
+  white-space: pre-wrap;
+}
+.ag-user.editing {
+  width: 100%;
+  max-width: none;
+}
+.ag-user textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  resize: vertical;
+}
+.ag-edit {
+  position: absolute;
+  top: 2px;
+  left: -34px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--faint);
+  font-size: 11px;
+  opacity: 0;
+  cursor: pointer;
+}
+.ag-user:hover .ag-edit,
+.ag-edit:focus-visible {
+  opacity: 1;
+}
+.ag-edit-actions,
+.ag-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.ag-hint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--faint);
+}
+.ag-assistant .md > :first-child {
+  margin-top: 0;
+}
+.ag-assistant .md > :last-child {
+  margin-bottom: 0;
+}
+.md p,
+.md ul,
+.md ol,
+.md pre {
+  margin: 0 0 8px;
+}
+.md ul,
+.md ol {
+  padding-left: 20px;
+}
+.md li + li {
+  margin-top: 2px;
+}
+.md-h {
+  font-weight: 600;
+}
+.md a {
+  color: var(--day-1);
+}
+.md code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  font-size: 12px;
+}
+.md pre {
+  padding: 10px;
+  overflow-x: auto;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.md pre code {
+  padding: 0;
+  background: none;
+}
+.ag-assistant.streaming .md > :last-child::after {
+  content: '▍';
+  margin-left: 1px;
+  color: var(--muted);
+  animation: ag-blink 1s steps(2) infinite;
+}
+.ag-dots::after,
+.ag-working::after {
+  content: '…';
+  animation: ag-blink 1s steps(2) infinite;
+}
+
+/* tool rows */
+.ag-tool {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.ag-tool-icon {
+  flex: none;
+  width: 14px;
+  text-align: center;
+}
+.ag-tool.done .ag-tool-icon {
+  color: var(--ok);
+}
+.ag-tool.error .ag-tool-icon {
+  color: var(--err);
+}
+.ag-tool-title {
+  flex: none;
+  color: var(--text);
+}
+.ag-tool-detail {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ag-working {
+  font-size: 12px;
+  color: var(--faint);
+}
+.ag-result {
+  font-size: 11px;
+  color: var(--faint);
+}
+.ag-error {
+  font-size: 12.5px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* permission + question cards */
+.ag-card {
+  padding: 12px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.ag-card.pending {
+  border-color: var(--warn);
+}
+.ag-card-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+.ag-card.allowed .ag-card-title {
+  color: var(--ok);
+}
+.ag-card.denied .ag-card-title {
+  color: var(--err);
+}
+.ag-card-detail {
+  display: block;
+  margin-top: 6px;
+  padding: 6px 8px;
+  overflow-wrap: anywhere;
+  border-radius: 6px;
+  background: var(--surface-3);
+  color: var(--muted);
+  font-size: 11px;
+}
+.ag-question fieldset {
+  min-width: 0;
+  margin: 0 0 10px;
+  padding: 0;
+  border: 0;
+}
+.ag-question legend {
+  padding: 0;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.ag-chip {
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+.ag-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ag-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.ag-option small {
+  color: var(--faint);
+  font-size: 11px;
+}
+.ag-option:hover,
+.ag-option.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.ag-other {
+  width: 100%;
+  margin-top: 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.ag-answer {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* composer */
+.ag-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--border);
+}
+.ag-context {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ag-composer textarea {
+  width: 100%;
+  min-height: 36px;
+  max-height: 140px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  resize: none;
+}
+.ag-composer textarea:focus {
+  border-color: var(--accent);
+  outline: 0;
+}
+.ag-composer-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ag-composer-bar select {
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-size: 12px;
+}
+.ag-auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.ag-send {
+  margin-left: auto;
+}
+
+@keyframes ag-blink {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes ag-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent *,
+  .agent-open .dot {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .agent {
+    position: fixed;
+    inset: 8px;
+    width: auto;
+    z-index: 30;
+  }
+  .ag-edit {
+    position: static;
+    margin-top: 4px;
+    opacity: 1;
+  }
+  .ag-composer textarea,
+  .ag-composer-bar select {
+    font-size: 16px; /* no iOS zoom on focus */
+  }
+}
+
+@media print {
+  .agent,
+  .agent-open {
+    display: none !important;
+  }
+}

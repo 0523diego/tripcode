@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+.DS_Store
+# Personal booking details stay out of public repos by default
+trips/*/bookings.md
+trips/*/export/
+trips/*/tickets/
+trips/*/purchase/
+trips/*/.notion.json

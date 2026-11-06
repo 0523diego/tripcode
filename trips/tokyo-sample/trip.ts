@@ -1,0 +1,195 @@
+// 範例行程（sample trip）：東京 4 天親子旅程，僅用來示範 TripCode 的檔案格式。
+// - 所有 loc 都是知名地點的「約略座標」，並非從 Google Places 查得；請用
+//   `npm run tripcode -- places search "<名稱>"` 更新後再依賴地圖。
+// - 刻意不含價格、營業時間、行車時間與停留時間長度：作者無法查證，所以不寫。
+//   需要時請用 CLI 或 find-prices 取得，並標註來源。
+// - 項目的 start / end 只是「想這樣安排」的暫定時間窗，不是營業時間。
+// - 住宿是占位項目（locked），請改成你實際訂的飯店。
+import { defineTrip } from '../../src/core/types.ts';
+
+export default defineTrip({
+  title: '東京 4 天親子（範例）',
+  start: '2027-10-09',
+  end: '2027-10-12',
+  tz: 'Asia/Tokyo',
+  party: { adults: 2, childrenAges: [6] },
+  style: 'default',
+  days: [
+    {
+      date: '2027-10-09',
+      title: '抵達與新宿御苑（輕鬆開場）',
+      weather: 'any',
+      items: [
+        {
+          id: 'hotel-shinjuku',
+          kind: 'hotel',
+          title: '新宿一帶住宿（範例占位，請填入你訂的飯店）',
+          nights: 3,
+          loc: { lat: 35.6896, lng: 139.7006 },
+          locked: true,
+          note: '範例：占位用的住宿項目。位置為新宿車站一帶的約略座標。入住時間與費用未查證。',
+        },
+        {
+          id: 'shinjuku-gyoen',
+          kind: 'poi',
+          title: '新宿御苑',
+          start: '14:30',
+          end: '16:30',
+          loc: { lat: 35.6852, lng: 139.71 },
+          note: '為什麼：開闊草地，適合孩子在移動後放電。取捨：入園規定與閉園時間未查證，出發前請確認。座標為約略值。',
+        },
+        {
+          id: 'dinner-shinjuku',
+          kind: 'meal',
+          title: '新宿晚餐',
+          start: '18:00',
+          end: '19:30',
+          loc: { lat: 35.6938, lng: 139.7034 },
+          note: '餐廳待選；早點吃、早點睡，隔天要早起。座標為約略值。',
+        },
+      ],
+    },
+    {
+      date: '2027-10-10',
+      title: '淺草寺與晴空塔',
+      weather: 'clear',
+      items: [
+        {
+          id: 'senso-ji',
+          kind: 'poi',
+          title: '淺草寺',
+          start: '09:30',
+          end: '11:00',
+          loc: { lat: 35.7148, lng: 139.7967 },
+          note: '為什麼：熱鬧的仲見世通，孩子容易有興趣。取捨：週末人潮多，早到比較舒服。座標為約略值。',
+        },
+        {
+          id: 'lunch-asakusa',
+          kind: 'meal',
+          title: '淺草午餐',
+          start: '11:30',
+          end: '12:30',
+          loc: { lat: 35.7118, lng: 139.7963 },
+          note: '餐廳待選。座標為約略值。',
+        },
+        {
+          id: 'tokyo-skytree',
+          kind: 'poi',
+          title: '東京晴空塔',
+          start: '14:00',
+          end: '16:00',
+          loc: { lat: 35.7101, lng: 139.8107 },
+          note: '為什麼：從淺草過去順路，視野很好，適合晴天。取捨：是否上展望台、票價與預約方式都未查證。座標為約略值。',
+        },
+        {
+          id: 'dinner-sumida',
+          kind: 'meal',
+          title: '晴空塔周邊晚餐',
+          start: '18:00',
+          end: '19:30',
+          loc: { lat: 35.7106, lng: 139.8101 },
+          note: '餐廳待選。座標為約略值。',
+        },
+      ],
+    },
+    {
+      date: '2027-10-11',
+      title: '上野動物園（慢節奏）',
+      weather: 'any',
+      items: [
+        {
+          id: 'ueno-zoo',
+          kind: 'poi',
+          title: '上野動物園',
+          start: '09:30',
+          end: '12:00',
+          loc: { lat: 35.7167, lng: 139.7713 },
+          note: '為什麼：6 歲孩子的重點行程。取捨：休園日與入園規定未查證，出發前請務必確認。座標為約略值。',
+        },
+        {
+          id: 'lunch-ueno',
+          kind: 'meal',
+          title: '上野午餐',
+          start: '12:30',
+          end: '13:30',
+          loc: { lat: 35.7141, lng: 139.7774 },
+          note: '餐廳待選。座標為約略值。',
+        },
+        {
+          id: 'afternoon-rest',
+          kind: 'free',
+          title: '回住宿午休或在上野公園散步',
+          start: '14:00',
+          end: '16:00',
+          note: '孩子午休用的彈性時段；想改成別的景點，可以在這一段留言。',
+        },
+        {
+          id: 'dinner-ueno',
+          kind: 'meal',
+          title: '晚餐（住宿附近或上野）',
+          start: '18:00',
+          end: '19:30',
+          note: '餐廳待選。',
+        },
+      ],
+    },
+    {
+      date: '2027-10-12',
+      title: '明治神宮與澀谷（收尾）',
+      weather: 'any',
+      items: [
+        {
+          id: 'meiji-jingu',
+          kind: 'poi',
+          title: '明治神宮',
+          start: '09:00',
+          end: '10:30',
+          loc: { lat: 35.6764, lng: 139.6993 },
+          note: '為什麼：森林參道，早上涼爽好走。取捨：參道碎石路對推車不友善。座標為約略值。',
+        },
+        {
+          id: 'shibuya-crossing',
+          kind: 'poi',
+          title: '澀谷十字路口',
+          start: '11:00',
+          end: '12:00',
+          loc: { lat: 35.6595, lng: 139.7005 },
+          note: '為什麼：離明治神宮近，順路看一眼。座標為約略值。',
+        },
+        {
+          id: 'lunch-shibuya',
+          kind: 'meal',
+          title: '澀谷午餐',
+          start: '12:00',
+          end: '13:00',
+          loc: { lat: 35.6598, lng: 139.7036 },
+          note: '餐廳待選。座標為約略值。',
+        },
+        {
+          id: 'departure',
+          kind: 'free',
+          title: '退房與前往機場（時間依你的航班而定）',
+          note: '航班尚未決定，所以沒有排時間。請在航班確定後新增 flight 項目，並預留足夠的機場移動時間（待查證）。',
+        },
+      ],
+    },
+  ],
+  candidates: [
+    {
+      id: 'ghibli-museum',
+      title: '三鷹之森吉卜力美術館',
+      loc: { lat: 35.6962, lng: 139.5704 },
+      status: 'unconfirmed',
+      sources: ['claude'],
+      why: 'Claude 建議：孩子可能會喜歡。入館是否需要預約、票價與開放日都未查證，距離住宿較遠，要花半天。座標為約略值。',
+    },
+    {
+      id: 'odaiba-gundam',
+      title: '台場獨角獸鋼彈',
+      loc: { lat: 35.625, lng: 139.7753 },
+      status: 'unconfirmed',
+      sources: ['claude'],
+      why: 'Claude 建議：大型景觀，孩子可能會喜歡；與其他天的區域不同，需要另外排。目前展出狀態與交通未查證。座標為約略值。',
+    },
+  ],
+});

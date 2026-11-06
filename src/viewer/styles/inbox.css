@@ -1,0 +1,83 @@
+/* TripCode viewer — inbox tab (匯入).
+   Owner: foreman. Tokens and shared controls live in ../styles.css. */
+
+/* ---------- inbox (匯入 tab) ---------- */
+.inbox-form {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.inbox-form .row-end {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+.tiles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tile {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.tile-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.tile-head:hover {
+  background: var(--surface-3);
+}
+.tile-title {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tile-name {
+  font-size: 11px;
+  color: var(--faint);
+  grid-row: 2;
+}
+.status {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  align-self: center;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.status.todo {
+  color: var(--warn);
+}
+.status.done {
+  color: var(--ok);
+}
+.status.bad {
+  color: var(--err);
+}
+.raw {
+  margin: 0;
+  padding: 0 12px 12px;
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  max-height: 240px;
+  overflow: auto;
+}
+

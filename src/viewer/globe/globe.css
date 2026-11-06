@@ -1,0 +1,226 @@
+/* The globe always sits on dark space, whatever the app theme is. */
+.globe {
+  --globe-space: #02040b;
+  --globe-pin: #ffb54a;
+  --globe-pin-glow: rgba(255, 181, 74, 0.55);
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--globe-space);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  container-type: size;
+  color-scheme: dark;
+}
+
+.globe.is-dragging {
+  cursor: grabbing;
+}
+
+.globe-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.globe-pins {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* --- pins: positioned by the animation loop (transform, --v, visibility) --- */
+.globe-pin {
+  --o: 1;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  visibility: hidden;
+  opacity: calc(var(--v, 0) * var(--o));
+  pointer-events: auto;
+  will-change: transform, opacity;
+}
+
+.globe-pin[data-state='dim'] {
+  --o: 0.42;
+}
+
+.globe-pin__dot,
+.globe-pin__pulse {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.globe-pin__dot {
+  width: 11px;
+  height: 11px;
+  background: var(--globe-pin);
+  box-shadow:
+    0 0 0 2px rgba(2, 4, 11, 0.7),
+    0 0 14px 2px var(--globe-pin-glow);
+  transition:
+    width 0.25s ease,
+    height 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.globe-pin__pulse {
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid var(--globe-pin);
+  animation: globe-pulse 2.4s ease-out infinite;
+}
+
+.globe-pin__label {
+  position: absolute;
+  left: 15px;
+  top: 0;
+  transform: translateY(-50%);
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(6, 10, 22, 0.66);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: var(--text, #ededed);
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.globe-pin[data-flip='1'] .globe-pin__label {
+  left: auto;
+  right: 15px;
+}
+
+.globe-pin:hover .globe-pin__label {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.globe-pin:focus-visible {
+  outline: none;
+}
+
+.globe-pin:focus-visible .globe-pin__label {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.globe-pin[data-state='active'] {
+  --globe-pin: #ffd27a;
+  --globe-pin-glow: rgba(255, 210, 122, 0.8);
+}
+
+.globe-pin[data-state='active'] .globe-pin__dot {
+  width: 17px;
+  height: 17px;
+}
+
+.globe-pin[data-state='active'] .globe-pin__pulse {
+  width: 17px;
+  height: 17px;
+  animation-duration: 1.8s;
+}
+
+.globe-pin[data-state='active'] .globe-pin__label {
+  left: 21px;
+  background: rgba(255, 244, 220, 0.94);
+  border-color: transparent;
+  color: #1a1306;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.globe-pin[data-state='active'][data-flip='1'] .globe-pin__label {
+  left: auto;
+  right: 21px;
+}
+
+@keyframes globe-pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(3.2);
+    opacity: 0;
+  }
+}
+
+.globe-credit {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.34);
+  pointer-events: none;
+}
+
+/* --- no WebGL: the day image clipped to a disc --- */
+.globe--still {
+  cursor: default;
+  touch-action: auto;
+}
+
+.globe-fallback {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 78cqmin;
+  height: 78cqmin;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background-size: auto 100%;
+  background-position: 46% 50%;
+  background-repeat: no-repeat;
+  box-shadow:
+    0 0 0 1px rgba(120, 170, 255, 0.18),
+    0 0 40px 6px rgba(70, 130, 255, 0.28),
+    inset -2.2cqmin -1.6cqmin 6cqmin 1cqmin rgba(0, 0, 8, 0.85);
+}
+
+.globe-fallback::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.16), transparent 45%),
+    radial-gradient(circle at 70% 75%, rgba(0, 0, 10, 0.6), transparent 60%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .globe-pin__pulse {
+    animation: none;
+    opacity: 0.45;
+    transform: translate(-50%, -50%) scale(1.9);
+  }
+  .globe-pin__dot,
+  .globe-pin__label {
+    transition: none;
+  }
+}

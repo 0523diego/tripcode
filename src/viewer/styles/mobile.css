@@ -1,0 +1,243 @@
+/* TripCode viewer — narrow screens: the map on top, the rail as ONE bottom sheet.
+   Owner: shell worker. Tokens and shared controls live in ../styles.css.
+
+   The sheet has three heights (peek / half / full, set from App.tsx) and a draggable grip.
+   Selecting something pushes the detail one level into the sheet (.sheet-detail slides over
+   .sheet-main) — there is never a second card floating over the list. */
+@media (max-width: 900px) {
+  .app {
+    overflow: hidden;
+  }
+  /* The map keeps the part of the screen the sheet does not cover (full uses the half height). */
+  .map-layer {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: calc(100% - var(--map-bottom, 50%) + var(--radius));
+    transition: height 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* ---------- the sheet ---------- */
+  .rail.sheet {
+    position: absolute;
+    inset: auto 0 0 0;
+    width: auto;
+    margin: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    overflow: hidden;
+    transition: height 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .rail.sheet[data-dragging] {
+    transition: none;
+  }
+  .sheet-grip {
+    flex: 0 0 auto;
+    padding: 8px 20px 6px;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .sheet-grip:active {
+    cursor: grabbing;
+  }
+  .sheet-bar {
+    display: block;
+    width: 40px;
+    height: 5px;
+    margin: 0 auto 8px;
+    border-radius: 3px;
+    background: var(--border-2);
+  }
+  .peek {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .peek-kicker {
+    font-size: 12px;
+    color: var(--faint);
+  }
+  .peek-title {
+    font-size: 17px;
+    font-weight: 650;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .peek-next {
+    font-size: 13px;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .peek-next.muted {
+    color: var(--muted);
+  }
+  /* Once the sheet is open the real header below says the same thing: keep only the day line. */
+  .rail.sheet:not([data-snap='peek']) .peek-title,
+  .rail.sheet:not([data-snap='peek']) .peek-next {
+    display: none;
+  }
+  .rail.sheet:not([data-snap='peek']) .sheet-bar {
+    margin-bottom: 2px;
+  }
+  .rail.sheet:not([data-snap='peek']) .peek {
+    display: none;
+  }
+
+  .sheet-stack {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .sheet-layer {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 200ms;
+  }
+  .sheet-main {
+    transform: translateX(0);
+  }
+  .sheet-detail {
+    transform: translateX(100%);
+    background: var(--surface);
+    visibility: hidden;
+  }
+  .sheet-stack.pushed .sheet-main {
+    transform: translateX(-18%);
+    opacity: 0;
+  }
+  .sheet-stack.pushed .sheet-detail {
+    transform: translateX(0);
+    visibility: visible;
+  }
+  /* Collapsed: only the day strip peeks out under the summary. */
+  .rail.sheet[data-snap='peek'] .sheet-main {
+    overflow: hidden;
+  }
+  .rail.sheet[data-snap='peek'] .rail-head,
+  .rail.sheet[data-snap='peek'] .today-row,
+  .rail.sheet[data-snap='peek'] .tabs,
+  .rail.sheet[data-snap='peek'] .rail-body,
+  .rail.sheet[data-snap='peek'] .rail-foot {
+    display: none;
+  }
+
+  /* Header and footer scroll with the list (the footer sits at its end); day strip and tabs stay pinned. */
+  .rail.sheet .rail-head {
+    padding: 2px 16px 0;
+  }
+  .rail.sheet .rail-top {
+    margin-bottom: 4px;
+  }
+  .rail.sheet .rail-title {
+    font-size: 17px;
+  }
+  .rail.sheet .rail-meta {
+    margin-top: 0;
+    font-size: 12px;
+  }
+  .rail.sheet .rail-actions {
+    margin-top: 8px;
+  }
+  .rail-nav {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: var(--surface);
+  }
+  .rail.sheet .day-strip {
+    padding: 8px 16px 2px;
+  }
+  .rail.sheet .today-row {
+    padding: 4px 16px 0;
+  }
+  .rail.sheet .tabs {
+    padding: 0 16px;
+    margin-top: 4px;
+  }
+  .rail.sheet .tab {
+    height: 44px;
+  }
+  .rail.sheet .rail-body {
+    overflow: visible;
+    padding: 8px 16px 20px;
+  }
+  .rail.sheet .rail-foot {
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  /* Rows that scroll into view must clear the pinned strip + tabs. */
+  .rail.sheet li[data-item-id],
+  .rail.sheet [data-sel] {
+    scroll-margin-top: 140px;
+    scroll-margin-bottom: 80px;
+  }
+
+  /* ---------- detail pushed into the sheet ---------- */
+  .sheet-detail .detail {
+    position: static;
+    width: auto;
+    max-height: none;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 8px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+  .detail-back {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .btn,
+  .time-edit input,
+  .chip {
+    min-height: 36px;
+  }
+
+  .compare-sheet {
+    position: fixed;
+    inset: 8px;
+    z-index: 30;
+  }
+  .cmp-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .home {
+    padding: 16px 16px 48px;
+  }
+  .home-head {
+    margin-bottom: 28px;
+  }
+  .home-title {
+    font-size: 26px;
+  }
+  .new-trip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .map-badge {
+    display: none;
+  }
+  .map-ctrl {
+    bottom: var(--gap);
+  }
+  .legend-wrap {
+    bottom: calc(var(--gap) + 24px);
+  }
+  /* Toasts float above the sheet's grip, not over its content. */
+  .toast-region {
+    bottom: auto;
+    top: 64px;
+  }
+}

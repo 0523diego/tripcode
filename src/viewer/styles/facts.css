@@ -1,0 +1,109 @@
+/* TripCode viewer — facts tab (已確定).
+   Owner: foreman. Tokens and shared controls live in ../styles.css. */
+
+/* ---------- facts (已確定 tab) ---------- */
+.section-label {
+  font-size: 11.5px;
+  color: var(--faint);
+  letter-spacing: 0.04em;
+  margin: 18px 0 10px;
+}
+.fact {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px 14px;
+}
+.fact + .fact {
+  margin-top: 10px;
+}
+.fact-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--faint);
+  margin-bottom: 8px;
+}
+.fact-head .link {
+  margin-left: auto;
+}
+.fact-title {
+  width: 100%;
+  font-size: 15px;
+  font-weight: 600;
+  background: transparent;
+  border-color: transparent;
+  padding: 4px 6px;
+  margin: 0 -6px 8px;
+  width: calc(100% + 12px);
+}
+.fact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.fact-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+.fact-grid label.wide {
+  grid-column: 1 / -1;
+}
+.fact-grid input {
+  font-size: 13px;
+  color: var(--text);
+  width: 100%;
+}
+.issues {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.issues button {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  cursor: pointer;
+  font-size: 13px;
+}
+.issues button:disabled {
+  cursor: default;
+}
+.issues button::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--warn);
+}
+.issues .error button::before {
+  background: var(--err);
+}
+.issues code {
+  display: block;
+  font-size: 11px;
+  color: var(--faint);
+  margin-top: 2px;
+}
+.ok-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ok);
+  font-size: 13px;
+}
+
