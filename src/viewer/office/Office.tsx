@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { WatchView } from '../../purchase/office.ts';
 import { AgentPanel } from '../agent/AgentPanel.tsx';
+import { usePanelOpen } from '../agent/panel-open.ts';
 import { sendMessage } from '../agent/agent-store.ts';
 import { deriveBookingTodos } from '../../core/bookings.ts';
 import { findMealGaps } from '../../core/meals.ts';
@@ -147,7 +148,7 @@ export function Office({ entry }: { entry: TripEntry }) {
   const file = main?.file ?? 'trip.ts';
   const title = trip?.title ?? tripId;
   const [now, setNow] = useState(() => new Date());
-  const [agentOpen, setAgentOpen] = useState(false);
+  const [agentOpen, setAgentOpen] = usePanelOpen();
   const [tripOpen, setTripOpen] = useState(false);
   const [watchOpen, setWatchOpen] = useState(false);
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);

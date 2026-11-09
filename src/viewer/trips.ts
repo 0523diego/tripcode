@@ -1,5 +1,10 @@
-// Loads every trips/<id>/*.ts (plan + variants) and trips/<id>/inbox/*.md via Vite globs,
-// so edits on disk trigger HMR / reload.
+// Loads every trips/<id>/*.ts (plan + variants) and trips/<id>/inbox/*.md via Vite globs.
+//
+// An edit on disk (the AI changing trip.ts or brief.md, you editing a file) used to make Vite reload the whole page, because nothing
+// accepted the update: whatever was open (the AI panel, a selection, a half-typed message) was lost, which looked like the AI panel
+// closing by itself. This module now accepts its own updates: it computes the entries again and hands them to a store that lives in
+// `import.meta.hot.data` (it survives the module being replaced), and the viewer reads the entries through `useTrips()`.
+import { useSyncExternalStore } from 'react';
 import type { Trip } from '../core/types.ts';
 import { sampleInbox, sampleTrip } from './fixtures/sample-trip.ts';
 
@@ -45,7 +50,7 @@ const profileModules = import.meta.glob<string>('/profile.md', { query: '?raw', 
 
 /** profile.md, when there is one (its walking limit feeds the day rules). */
 export function profileText(): string | undefined {
-  return Object.values(profileModules)[0];
+  return store.profile;
 }
 
 export function loadTrips(): TripEntry[] {
@@ -90,4 +95,33 @@ export function loadTrips(): TripEntry[] {
     });
   }
   return list;
+}
+
+// ---------- the store the viewer reads ----------
+
+interface Store {
+  entries: TripEntry[];
+  profile: string | undefined;
+  listeners: Set<() => void>;
+}
+
+// (Vite only recognises a literal `import.meta.hot.accept(` / `import.meta.hot.data`; an alias would make it reload the page.)
+// The first module instance makes the store; every replacement of this module reuses it, so subscribers stay subscribed.
+const store: Store = (import.meta.hot?.data.tripStore as Store | undefined) ?? { entries: [], profile: undefined, listeners: new Set() };
+if (import.meta.hot) import.meta.hot.data.tripStore = store;
+store.entries = loadTrips();
+store.profile = Object.values(profileModules)[0];
+for (const l of store.listeners) l();
+// Take our own updates (a changed trip.ts, a new trip folder) instead of reloading the page.
+if (import.meta.hot) import.meta.hot.accept();
+
+const subscribe = (l: () => void): (() => void) => {
+  store.listeners.add(l);
+  return () => void store.listeners.delete(l);
+};
+const snapshot = (): TripEntry[] => store.entries;
+
+/** Every trip on disk, kept current without a page reload. */
+export function useTrips(): TripEntry[] {
+  return useSyncExternalStore(subscribe, snapshot, snapshot);
 }

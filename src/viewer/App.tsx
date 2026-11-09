@@ -6,6 +6,7 @@ import { DetailPanel } from './components/DetailPanel.tsx';
 import { FactsPanel, useHealth } from './components/FactsPanel.tsx';
 import { InboxPanel } from './components/InboxPanel.tsx';
 import { AgentPanel } from './agent/AgentPanel.tsx';
+import { usePanelOpen } from './agent/panel-open.ts';
 import { Office } from './office/Office.tsx';
 import { agentContext } from './agent/context.ts';
 import { useAgent } from './agent/agent-store.ts';
@@ -28,7 +29,7 @@ import { OpeningTrip } from './idea/OpeningTrip.tsx';
 import { clearLanding, readLanding } from './idea/landing.ts';
 import { buildMapData, dateLabel, findItem, lockedItems, parseInbox, selKey, type MapPin, type Selection } from './model.ts';
 import { nextItem, todayDayIdx, viewerNow } from './today.ts';
-import { loadTrips, type TripEntry } from './trips.ts';
+import { useTrips, type TripEntry } from './trips.ts';
 import { variantName } from './variant.ts';
 import type { Trip } from '../core/types.ts';
 
@@ -128,7 +129,7 @@ interface Toast {
 }
 
 export function App() {
-  const trips = useMemo(() => loadTrips(), []);
+  const trips = useTrips();
   const route = useRoute();
   // The trip step 0 created is on screen: forget the marker that bridged the reload.
   useEffect(() => {
@@ -395,7 +396,7 @@ function TripView({ trips, entry }: { trips: TripEntry[]; entry: TripEntry }) {
 
   // AI 助手 (src/agent/) only exists behind the dev server, so a production build never offers it.
   // It takes the detail card's slot, so the card steps aside while the panel is open.
-  const [agentOpen, setAgentOpen] = useState(false);
+  const [agentOpen, setAgentOpen] = usePanelOpen();
   const agentRunning = useAgent().active?.status === 'running';
   const agentView = agentContext(trip, { tripId, file: currentFile, dayIdx, selection });
 
