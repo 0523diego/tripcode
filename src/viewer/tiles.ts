@@ -81,25 +81,32 @@ export interface TileRef {
 
 /**
  * Tiles covering a w×h viewport where world point (wx, wy) is drawn at (wx * scale + ox, wy * scale + oy),
- * `scale` being screen px per world unit. Returns [] when it would need an unreasonable number of tiles.
+ * `scale` being screen px per world unit. On a big window the sharpest zoom level can need more tiles than we are willing to
+ * request at once (every tile is a request to a volunteer-run server), so it steps down to a coarser level, whose tiles are
+ * drawn larger, instead of drawing nothing: an empty list leaves the whole basemap black.
  */
+export const MAX_TILES = 120;
+
 export function visibleTiles(scale: number, ox: number, oy: number, w: number, h: number, maxZoom: number): TileRef[] {
-  const z = Math.max(0, Math.min(maxZoom, Math.round(Math.log2(scale / 256))));
-  const n = 2 ** z;
-  const size = scale / n;
-  const x0 = Math.floor(-ox / size);
-  const x1 = Math.floor((w - ox) / size);
-  const y0 = Math.max(0, Math.floor(-oy / size));
-  const y1 = Math.min(n - 1, Math.floor((h - oy) / size));
-  if ((x1 - x0 + 1) * (y1 - y0 + 1) > 120) return [];
-  const out: TileRef[] = [];
-  for (let ty = y0; ty <= y1; ty++) {
-    for (let tx = x0; tx <= x1; tx++) {
-      const wx = ((tx % n) + n) % n;
-      out.push({ key: `${z}/${tx}/${ty}`, z, x: wx, y: ty, sx: ox + tx * size, sy: oy + ty * size, size });
+  for (let z = Math.max(0, Math.min(maxZoom, Math.round(Math.log2(scale / 256)))); z >= 0; z--) {
+    const n = 2 ** z;
+    const size = scale / n;
+    const x0 = Math.floor(-ox / size);
+    const x1 = Math.floor((w - ox) / size);
+    const y0 = Math.max(0, Math.floor(-oy / size));
+    const y1 = Math.min(n - 1, Math.floor((h - oy) / size));
+    if (y1 < y0) return [];
+    if ((x1 - x0 + 1) * (y1 - y0 + 1) > MAX_TILES) continue;
+    const out: TileRef[] = [];
+    for (let ty = y0; ty <= y1; ty++) {
+      for (let tx = x0; tx <= x1; tx++) {
+        const wx = ((tx % n) + n) % n;
+        out.push({ key: `${z}/${tx}/${ty}`, z, x: wx, y: ty, sx: ox + tx * size, sy: oy + ty * size, size });
+      }
     }
+    return out;
   }
-  return out;
+  return [];
 }
 
 // ---------- screen-space helpers for the interactive map ----------
