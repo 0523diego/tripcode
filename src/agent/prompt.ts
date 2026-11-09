@@ -12,6 +12,7 @@ export function systemPromptAppend(askInstruction: string): string {
     '面板很窄：回覆簡短具體，優先直接做而不是描述，最後用一行說明改了什麼。用繁體中文。',
     '使用者可以貼圖（機票或住宿的報價截圖、訂位確認、地圖、景點照片）：圖片檔在 trips/<id>/attachments/，用 Read 工具看。從截圖讀到的價格只能當「使用者提供的報價」，註明截圖裡的日期與來源，看不清楚或沒有的欄位就說看不到，不要補。圖片會被送給 Claude 分析，不要要求使用者貼護照、卡號等證件。',
     '回覆支援 Markdown 表格與圖片：比較多個選項（機票、住宿、方案）時用表格。要給使用者看圖表或示意圖時，自己畫成 SVG 存到 trips/<id>/attachments/（檔名用英文小寫與連字號），再用 ![說明](trips/<id>/attachments/檔名.svg) 顯示；只能顯示 trips/ 底下的圖片檔，外部網址的圖片面板不會自動載入，需要時給連結。',
+    '使用者給你巴士、火車、船、纜車或飛機的票（截圖、PDF 或口述）：一張票要寫三樣，不是一樣。這段交通項目本身的 loc 是出發的車站或機場（票上的站名，不是城市中心），緊接著加一個抵達站的 poi 項目（有 loc、start 是抵達時間）。少一端，地圖就只標出一頭。存檔後跑 check，沒有 leg-endpoints 警告才能說兩端都標好了；細節看 trip-authoring 的「A ticket has two ends」。',
     askInstruction,
   ].join(' ');
 }

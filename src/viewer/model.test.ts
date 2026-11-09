@@ -86,3 +86,17 @@ test('every day\'s route starts and ends at the hotel, even on days with no hote
   assert.equal(all.pins.filter((p) => p.key === 'item:h').length, 1);
   assert.equal(all.pins.find((p) => p.key === 'item:h')?.label, '1');
 });
+
+test('buildMapData draws a transit leg that has a loc (a ticket\'s departure) and skips one that has none', () => {
+  const trip = {
+    title: 'T', start: '2026-12-16', end: '2026-12-16', tz: 'Europe/Prague', party: { adults: 1, childrenAges: [] }, candidates: [],
+    days: [{ date: '2026-12-16', items: [
+      { id: 'bus', kind: 'transit', mode: 'bus', title: 'bus', start: '11:00', end: '15:45', loc: { lat: 48.14, lng: 11.55 } },
+      { id: 'walk', kind: 'transit', mode: 'walk', title: 'walk', start: '15:45', end: '15:55' },
+      { id: 'florenc', kind: 'poi', title: 'florenc', start: '15:55', loc: { lat: 50.09, lng: 14.44 } },
+    ] }],
+  } as unknown as Trip;
+  const map = buildMapData(trip, null);
+  assert.deepEqual(map.pins.map((p) => [p.key, p.label]), [['item:bus', '1'], ['item:florenc', '2']]);
+  assert.equal(map.routes[0]?.points.length, 2);
+});

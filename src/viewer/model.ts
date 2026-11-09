@@ -105,7 +105,10 @@ export function buildMapData(trip: Trip, dayIdx: number | null): MapData {
     const pts: { lat: number; lng: number }[] = [];
     let n = 0;
     for (const it of day.items) {
-      if (it.kind === 'transit') continue;
+      // A leg without coordinates (a walk between two stops) is the line between its neighbours, not a place. A leg that
+      // carries `loc` (a bus or train ticket: the loc is where it leaves from) is a stop and is drawn, or the ticket's
+      // departure would never show on the map.
+      if (it.kind === 'transit' && !(hasLoc(it) && it.loc)) continue;
       if (!hasLoc(it) || !it.loc) {
         unlocated++;
         continue;

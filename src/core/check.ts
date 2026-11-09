@@ -78,6 +78,34 @@ function isLocatedStop(item: Item): item is Item & { loc: NonNullable<Item['loc'
   return item.kind !== 'transit' && item.kind !== 'flight' && item.loc !== undefined;
 }
 
+/** Legs that go from one named place to another and are bought as a ticket: they need both ends on the map. */
+const TICKET_MODES = new Set(['train', 'bus', 'boat', 'cable-car']);
+
+/**
+ * `leg-endpoints`: a ticket leg (a train, bus, boat, cable car or flight) must show where it starts and where it ends.
+ * The leg's own `loc` is where it leaves from (the station or airport, not the city); where it arrives is the next
+ * located item of the day, so the arrival station or airport is its own item. Without them the map shows one end of the
+ * ticket or none, and the printed day does not say where to get off. A leg between two located stops (a metro ride
+ * from `routes`) is fine without its own `loc`. An overnight flight's arrival belongs to the next day.
+ */
+function legEndpoints(day: Day): Issue[] {
+  const out: Issue[] = [];
+  day.items.forEach((item, i) => {
+    const isLeg = item.kind === 'flight' || (item.kind === 'transit' && TICKET_MODES.has(item.mode));
+    if (!isLeg) return;
+    const startOk = item.loc !== undefined || day.items.slice(0, i).some((o) => o.loc !== undefined);
+    const overnight = item.kind === 'flight' && item.start !== undefined && item.end !== undefined && item.end < item.start;
+    const endOk = overnight || day.items.slice(i + 1).some((o) => o.loc !== undefined);
+    if (!startOk) {
+      out.push({ level: 'warn', code: 'leg-endpoints', date: day.date, itemId: item.id, message: `「${item.title}」沒有標出發點：把出發的車站／機場座標填在這個項目的 loc` });
+    }
+    if (!endOk) {
+      out.push({ level: 'warn', code: 'leg-endpoints', date: day.date, itemId: item.id, message: `「${item.title}」沒有標抵達點：在它後面加一個抵達車站／機場的項目（kind 'poi'，要有 loc）` });
+    }
+  });
+  return out;
+}
+
 /**
  * `missing-transit`: consecutive located stops of a day with no transit item between them whose straight-line
  * estimate is longer than 20 minutes. The estimate is a reference value (see optimize.ts), never a real timetable.
@@ -379,7 +407,7 @@ export function checkTrip(trip: Trip, opts: CheckOptions = {}): Issue[] {
     }
 
     // ---- missing-transit / day-overload (straight-line estimates, warnings only)
-    for (const issue of [...missingTransit(day), ...dayOverload(day)]) push(issue);
+    for (const issue of [...missingTransit(day), ...dayOverload(day), ...legEndpoints(day)]) push(issue);
   }
 
   // ---- duplicate-id (items and candidates share one namespace) -------------
