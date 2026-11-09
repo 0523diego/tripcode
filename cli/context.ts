@@ -7,6 +7,8 @@ export interface Core {
   checkTrip(trip: Trip, opts?: { hoursFor?: (item: any) => any }): any[];
   dayMapsLinks(day: Trip['days'][number], opts?: Record<string, unknown>): string[];
   tripToIcs(trip: Trip): string;
+  /** Hotels each day starts and ends at; optional so injected test cores need not provide it. */
+  lodgingByDay?(trip: Trip): { start?: { item: Trip['days'][number]['items'][number] }; end?: { item: Trip['days'][number]['items'][number] } }[];
 }
 
 export interface CliContext {

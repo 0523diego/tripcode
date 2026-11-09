@@ -129,6 +129,15 @@
 .it.locked .it-title {
   font-weight: 650;
 }
+/* The hotel a day starts or ends at: derived, so a quiet square node instead of a stop. */
+.it.stay .node {
+  border-radius: 3px;
+  border-color: var(--day-color);
+}
+.it.stay .it-title {
+  color: var(--muted);
+  font-weight: 500;
+}
 /* No time yet: the empty time cell is just dead space, so show a quiet dash instead. */
 .it.untimed:not(.locked) .it-title {
   color: var(--muted);

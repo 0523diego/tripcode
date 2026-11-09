@@ -31,6 +31,8 @@ export interface SourceEdits {
   setBooking(src: string, itemId: string, patch: Record<string, string | boolean | null>): string;
   setItemLoc(src: string, itemId: string, loc: { lat: number; lng: number }, fetchedAt: string): string;
   setDayAccepted(src: string, date: string, codes: string[]): string;
+  setDayColor(src: string, date: string, color: number | null): string;
+  setMealPlace(src: string, itemId: string, patch: { title: string; loc?: { lat: number; lng: number; fetchedAt: string }; placeId?: string; slot?: 'breakfast' | 'lunch' | 'dinner' | 'snack'; dishes?: string[]; checks?: Record<string, unknown> }): string;
 }
 
 export type SearchFn = (
@@ -56,6 +58,10 @@ export interface HandlerDeps {
   loadTrip?: (file: string) => Promise<Trip>;
   /** Remembers edits for `undo` / `redo` / `history`. Without it those endpoints are not available. */
   history?: EditHistory;
+  /** Renders a ticket PDF / HEIC to PNG pages for the printout (defaults to cli/ticket-render.ts). */
+  /** Public-web fetch for place photos (tests inject a fake; the default never leaves public https). */
+  safe?: import('./cli/safe-fetch.ts').SafeFetchDeps;
+  renderTicket?: (abs: string, ext: 'pdf' | 'heic') => Promise<import('./cli/ticket-render.ts').TicketPages>;
 }
 
 export interface HandlerResult {
@@ -63,7 +69,7 @@ export interface HandlerResult {
   json: { ok: true; [k: string]: unknown } | { ok: false; error: string; /** Set by undo / redo so the viewer can refresh its buttons. */ history?: unknown };
 }
 
-export const ENDPOINTS = ['comment', 'item-field', 'candidate', 'inbox', 'current', 'search', 'add-candidate', 'attach', 'detach', 'new-trip', 'move-item', 'schedule-candidate', 'remove-item', 'set-locked', 'booking', 'meal', 'accept', 'optimize', 'undo', 'redo', 'history', 'cover', 'cover-remove', 'idea-new', 'idea', 'idea-list', 'idea-finish'] as const;
+export const ENDPOINTS = ['comment', 'item-field', 'candidate', 'inbox', 'current', 'search', 'add-candidate', 'attach', 'detach', 'new-trip', 'move-item', 'schedule-candidate', 'remove-item', 'set-locked', 'booking', 'meal', 'accept', 'optimize', 'undo', 'redo', 'history', 'cover', 'cover-remove', 'trip-delete', 'day-color', 'idea-new', 'idea', 'idea-list', 'idea-finish', 'food', 'ticket-image'] as const;
 export type Endpoint = (typeof ENDPOINTS)[number];
 
 const TRIP_ID_RE = /^[a-z0-9-]+$/;
@@ -314,6 +320,7 @@ const UNDOABLE_LABELS: Record<string, string> = {
   booking: '訂票狀態',
   meal: '加入餐廳',
   accept: '這天就這樣',
+  'day-color': '每天顏色',
 };
 const FIELD_LABELS: Record<string, string> = { title: '標題', start: '開始時間', end: '結束時間', flightNo: '航班號', bookingRef: '訂位代號', note: '備註' };
 
@@ -581,6 +588,21 @@ async function handleCore(endpoint: string, body: unknown, deps: HandlerDeps): P
         if (next !== src) await atomicWrite(target, next);
         return { status: 200, json: { ok: true, date } };
       }
+      case 'day-color': {
+        // The color dot next to a day's heading: one color for these days (or null = back to automatic). All days change in one
+        // write, so a single undo restores them together.
+        const file = fileOf(b);
+        if (!Array.isArray(b.dates) || b.dates.length === 0 || b.dates.length > 400 || !b.dates.every((d) => typeof d === 'string' && DATE_RE.test(d))) bad('dates 必須是 YYYY-MM-DD 的清單（1 到 400 天）');
+        if (b.color !== null && !(typeof b.color === 'number' && Number.isInteger(b.color) && b.color >= 1 && b.color <= 8)) bad('color 必須是 1 到 8 的整數，或 null');
+        const target = safeJoin(tripDir, file);
+        const before = await readFile(target, 'utf8');
+        const known = deps.edits.listDayDates(before);
+        for (const date of b.dates as string[]) if (!known.includes(date)) bad(`行程中沒有 ${date} 這一天`);
+        let src = before;
+        for (const date of new Set(b.dates as string[])) src = deps.edits.setDayColor(src, date, b.color as number | null);
+        if (src !== before) await atomicWrite(target, src);
+        return { status: 200, json: { ok: true, dates: b.dates, color: b.color } };
+      }
       case 'meal': {
         // Put a restaurant into a meal gap: fill the placeholder meal, or add a new meal item.
         const file = fileOf(b);
@@ -597,15 +619,31 @@ async function handleCore(endpoint: string, body: unknown, deps: HandlerDeps): P
             bad(e instanceof Error ? e.message : String(e));
           }
         }
+        // A place picked from the 這餐吃什麼 drawer: only a place seen on a map can be chosen (see mealFromPlace), and what is
+        // written is its name, coordinates, id, the dishes and the checks (exists, open then) with their sources. No rating.
+        let chosen: import('./src/core/food.ts').MealFromPlace | undefined;
+        if (b.place !== undefined) {
+          const { mealFromPlace, FoodError } = await import('./src/core/food.ts');
+          try {
+            chosen = mealFromPlace(b.place, { slot: b.slot, now: (deps.now?.() ?? new Date()).toISOString().replace(/\.\d+Z$/, 'Z') });
+          } catch (e) {
+            if (e instanceof FoodError) bad(e.message);
+            throw e;
+          }
+        }
         const typed = typeof b.title === 'string' ? singleLine(b.title, 'title').trim() : '';
-        const title = typed || place.name || '';
+        const title = typed || chosen?.title || place.name || '';
         if (title === '' || title.length > MAX_TITLE) bad('請輸入店名，或貼上含店名的 Google 地圖連結');
         const target = safeJoin(tripDir, file);
         let src = await readFile(target, 'utf8');
         if (existing) {
           if (!deps.edits.findObjectById(src, existing)) bad(`找不到 id 為「${existing}」的項目`);
-          src = deps.edits.setItemField(src, existing, 'title', title);
-          if (place.loc) src = deps.edits.setItemLoc(src, existing, place.loc, today);
+          if (chosen) {
+            src = deps.edits.setMealPlace(src, existing, { ...chosen, title });
+          } else {
+            src = deps.edits.setItemField(src, existing, 'title', title);
+            if (place.loc) src = deps.edits.setItemLoc(src, existing, place.loc, today);
+          }
           await atomicWrite(target, src);
           return { status: 200, json: { ok: true, id: existing, title } };
         }
@@ -614,7 +652,8 @@ async function handleCore(endpoint: string, body: unknown, deps: HandlerDeps): P
         let id = `meal-${slug || 'x'}-${date.slice(5).replace('-', '')}`;
         for (let n = 2; deps.edits.findObjectById(src, id); n++) id = `meal-${slug || 'x'}-${date.slice(5).replace('-', '')}-${n}`;
         const item: Record<string, unknown> = { id, kind: 'meal', title };
-        if (place.loc) item.loc = { lat: place.loc.lat, lng: place.loc.lng, fetchedAt: today };
+        if (chosen) Object.assign(item, { loc: chosen.loc, placeId: chosen.placeId, ...(chosen.slot ? { slot: chosen.slot } : {}), ...(chosen.dishes.length ? { dishes: chosen.dishes } : {}), checks: chosen.checks });
+        else if (place.loc) item.loc = { lat: place.loc.lat, lng: place.loc.lng, fetchedAt: today };
         await atomicWrite(target, deps.edits.insertItem(src, date, item, beforeItemId));
         return { status: 200, json: { ok: true, id, title } };
       }
@@ -720,6 +759,21 @@ async function handleCore(endpoint: string, body: unknown, deps: HandlerDeps): P
         }
         return { status: 200, json: { ok: true, file: attachment.file, attachment } };
       }
+      case 'ticket-image': {
+        // The printed itinerary carries the user's own ticket files. A PDF or HEIC cannot be printed by the browser as a
+        // picture, so this turns it into PNG pages (nothing is read from the ticket, only drawn).
+        const attachmentFile = singleLine(str(b, 'attachmentFile', { max: 200 }), 'attachmentFile');
+        if (!TICKET_FILE_RE.test(attachmentFile) || attachmentFile.includes('..')) bad('無效的 attachmentFile');
+        const ext = path.extname(attachmentFile).slice(1).toLowerCase();
+        if (ext !== 'pdf' && ext !== 'heic') bad('這種檔案不需要轉換');
+        const abs = safeJoin(tripDir, attachmentFile);
+        try {
+          const render = deps.renderTicket ?? (await import('./cli/ticket-render.ts')).renderTicketPages;
+          return { status: 200, json: { ok: true, ...(await render(abs, ext)) } };
+        } catch (e) {
+          return { status: 422, json: { ok: false, error: e instanceof Error ? e.message : String(e) } };
+        }
+      }
       case 'detach': {
         const file = fileOf(b);
         const itemId = singleLine(str(b, 'itemId', { max: 200 }), 'itemId');
@@ -766,6 +820,69 @@ async function handleCore(endpoint: string, body: unknown, deps: HandlerDeps): P
           removed = false;
         }
         return { status: 200, json: { ok: true, removed } };
+      }
+      case 'trip-delete': {
+        // 刪除旅程 (or an unfinished idea). The folder is moved to <root>/.tripcode-trash/<id>-<time>/ rather than erased:
+        // a trip may hold work that was never committed, so a mistaken click must stay recoverable (move it back into trips/).
+        // Only an existing folder directly under trips/ moves, and the trash sits outside trips/ so the viewer never lists it.
+        if (!(await stat(tripDir).then((st) => st.isDirectory(), () => false))) bad('找不到這個旅程');
+        const trash = path.resolve(deps.root, '.tripcode-trash');
+        await mkdir(trash, { recursive: true });
+        const stamp = (deps.now?.() ?? new Date()).toISOString().replace(/\.\d+Z$/, 'Z').replace(/[-:]/g, '');
+        let dest = path.join(trash, `${tripId}-${stamp}`);
+        for (let n = 2; await stat(dest).then(() => true, () => false); n++) dest = path.join(trash, `${tripId}-${stamp}-${n}`);
+        await rename(tripDir, dest);
+        return { status: 200, json: { ok: true, tripId, trashed: path.relative(deps.root, dest) } };
+      }
+      case 'food': {
+        // The food guide (trips/<id>/food.json): plain file operations through the same pure functions as `tripcode food`, plus the two
+        // network reads (Wikivoyage dishes, OpenStreetMap places). Never undoable; the page refetches after a `tripcode:food` event.
+        const core = await import('./src/core/food.ts');
+        const store = await import('./cli/food-store.ts');
+        const svc = await import('./cli/food-service.ts');
+        const { CliError } = await import('./cli/context.ts');
+        const op = b.op;
+        if (typeof op !== 'string') bad('缺少或無效的欄位：op');
+        const fdeps = { root: deps.root, fetch: deps.fetch ?? ((u: string, i?: RequestInit) => fetch(u, i)), now: deps.now ?? (() => new Date()), loadTrip: deps.loadTrip ?? importTrip, ...(deps.safe ? { safe: deps.safe } : {}) };
+        try {
+          if (op === 'get') return { status: 200, json: { ok: true, food: await store.readFood(deps.root, tripId) } };
+          if (op === 'vote') {
+            const vote = b.vote;
+            if (vote !== 'want' && vote !== 'no' && vote !== 'clear') bad('vote 必須是 want、no 或 clear');
+            const dishId = str(b, 'dishId', { max: 40 });
+            const food = await store.updateFood(deps.root, tripId, (f) => core.voteDish(f, dishId, vote as 'want' | 'no' | 'clear'));
+            return { status: 200, json: { ok: true, food } };
+          }
+          if (op === 'taste') {
+            if (!b.patch || typeof b.patch !== 'object' || Array.isArray(b.patch)) bad('patch 必須是物件');
+            const food = await store.updateFood(deps.root, tripId, (f) => core.setTaste(f, b.patch as Record<string, unknown>));
+            return { status: 200, json: { ok: true, food } };
+          }
+          if (op === 'reject') {
+            const key = str(b, 'key', { max: 80 });
+            const reason = typeof b.reason === 'string' ? b.reason : undefined;
+            const food = await store.updateFood(deps.root, tripId, (f) => core.rejectPlace(f, key, reason as never, today.replace(/\.\d+Z$/, 'Z')));
+            return { status: 200, json: { ok: true, food } };
+          }
+          if (op === 'guide') {
+            const city = singleLine(str(b, 'city', { max: 40 }), 'city');
+            const page = singleLine(str(b, 'page', { max: 80 }), 'page');
+            return { status: 200, json: { ok: true, ...(await svc.guideForTrip(fdeps, tripId, { city, page, save: true })) } };
+          }
+          if (op === 'near') {
+            const date = str(b, 'date', { max: 20 });
+            if (!DATE_RE.test(date)) bad('date 必須是 YYYY-MM-DD');
+            if (b.slot !== 'lunch' && b.slot !== 'dinner') bad('slot 必須是 lunch 或 dinner');
+            const anchor = typeof b.anchor === 'string' && /^(prev|next|hotel|[a-z0-9-]{1,80})$/.test(b.anchor) ? b.anchor : undefined;
+            const dishes = Array.isArray(b.dishes) && b.dishes.every((d) => typeof d === 'string' && /^[a-z0-9-]{1,40}$/.test(d)) ? (b.dishes as string[]) : undefined;
+            return { status: 200, json: { ok: true, ...(await svc.nearForTrip(fdeps, tripId, { file: b.file === undefined ? undefined : fileOf(b), date, slot: b.slot, anchor, dishes, save: b.save !== false, photos: 'background' })) } };
+          }
+          bad('無效的 op（可用：get、vote、taste、reject、guide、near）');
+        } catch (e) {
+          if (e instanceof CliError || e instanceof core.FoodError) bad(e.message);
+          throw e;
+        }
+        break;
       }
       case 'idea-new': {
         // Step 0 (找方向): creates trips/<id>/idea.json. One of only two endpoints that create a folder (the other is idea-finish).
@@ -951,6 +1068,12 @@ export function ideaIdOfPath(root: string, file: string): string | undefined {
   return rel.length === 2 && rel[1] === 'idea.json' && TRIP_ID_RE.test(rel[0]!) ? rel[0] : undefined;
 }
 
+/** trips/<id>/food.json: like idea.json, read through the endpoint and announced with an event, not imported (a glob would reload the page). */
+export function foodIdOfPath(root: string, file: string): string | undefined {
+  const rel = path.relative(path.resolve(root, 'trips'), file).split(path.sep);
+  return rel.length === 2 && rel[1] === 'food.json' && TRIP_ID_RE.test(rel[0]!) ? rel[0] : undefined;
+}
+
 export default function tripcodePlugin(): Plugin {
   return {
     name: 'tripcode',
@@ -1005,6 +1128,22 @@ export default function tripcodePlugin(): Plugin {
         );
       };
       for (const ev of ['add', 'change', 'unlink'] as const) server.watcher.on(ev, onIdeaFile);
+
+      // The food guide changed (written by the CLI, the AI or the drawer): open drawers refetch.
+      const foodTimers = new Map<string, ReturnType<typeof setTimeout>>();
+      const onFoodFile = (file: string) => {
+        const id = foodIdOfPath(root, file);
+        if (!id) return;
+        clearTimeout(foodTimers.get(id));
+        foodTimers.set(
+          id,
+          setTimeout(() => {
+            foodTimers.delete(id);
+            server.ws.send({ type: 'custom', event: 'tripcode:food', data: { tripId: id } });
+          }, 60),
+        );
+      };
+      for (const ev of ['add', 'change', 'unlink'] as const) server.watcher.on(ev, onFoodFile);
 
       // In-viewer agent panel (src/agent/): Claude Code, driven through the Agent SDK, edits trips/ here.
       // Loaded on first use so the plugin (and its tests) never pull in the agent code otherwise.

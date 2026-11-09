@@ -1,6 +1,7 @@
 // Trip health check. Pure: all I/O (live opening hours) is injected via opts.hoursFor.
 
 import type { Day, Issue, Item, OpeningHours, Trip } from './types.ts';
+import { isDayColor } from './day-colors.ts';
 import { fromMinutes, isIsoDate, tryToMinutes, weekday } from './time.ts';
 import { estimateMinutes, haversineKm } from './optimize.ts';
 import { windowsFor } from './hours.ts';
@@ -48,6 +49,11 @@ function sourcedFields(item: Item): [string, unknown][] {
     }
   }
   switch (item.kind) {
+    case 'meal':
+      if (item.checks?.exists !== undefined) out.push(['餐廳存在', item.checks.exists]);
+      if (item.checks?.openAtSlot !== undefined) out.push(['用餐時間有營業', item.checks.openAtSlot]);
+      for (const r of item.checks?.recommendedBy ?? []) out.push(['推薦來源', r]);
+      break;
     case 'poi':
       if (item.ticket !== undefined) out.push(['門票', item.ticket]);
       break;
@@ -211,6 +217,9 @@ export function checkTrip(trip: Trip, opts: CheckOptions = {}): Issue[] {
   // ---- date-range ---------------------------------------------------------
   let prevDate: string | undefined;
   for (const day of trip.days) {
+    if (day.color !== undefined && !isDayColor(day.color)) {
+      push({ level: 'warn', code: 'day-color', date: day.date, message: `${day.date} 的 color 要是 1 到 8 的整數（現在是 ${String(day.color)}），先用自動顏色` });
+    }
     if (!isIsoDate(day.date)) {
       push({ level: 'error', code: 'date-range', date: day.date, message: `日期格式不正確：${day.date}（需為 YYYY-MM-DD）` });
       continue;

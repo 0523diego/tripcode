@@ -234,3 +234,44 @@ test('store: events mirror every change; list is newest first; removal is announ
   assert.ok(['session', 'item', 'delta', 'truncate', 'session-removed'].every((t) => seen.includes(t)));
   assert.throws(() => store.patch('nope', {}), /未知/);
 });
+
+
+test('pictures: the paths go to the user item and into the prompt; a picture alone is enough; an edit keeps them', async () => {
+  const seen: string[] = [];
+  const { store, runner, session } = setup(async (o) => {
+    seen.push(o.prompt);
+    o.emit({ type: 'text-start', id: `t${seen.length}` });
+    o.emit({ type: 'text-end', id: `t${seen.length}`, text: 'ok' });
+  });
+  const ref = 'trips/rome/attachments/img-abc-0123abcd.png';
+  await runner.send(session.id, { text: '', images: [ref] });
+  await idle(store, session.id);
+  const first = store.get(session.id)!.items[0];
+  assert.equal(first?.kind === 'user' && first.text, '（請看附上的圖片）');
+  assert.deepEqual(first?.kind === 'user' && first.images, [ref]);
+  assert.match(seen[0] ?? '', /<tripcode-attachments>[\s\S]*img-abc-0123abcd\.png[\s\S]*<\/tripcode-attachments>/);
+  assert.match(seen[0] ?? '', /Read/);
+
+  await runner.send(session.id, { text: '這張的價格呢', images: [ref] });
+  await idle(store, session.id);
+  const second = store.get(session.id)!.items.find((i) => i.kind === 'user' && i.text === '這張的價格呢');
+  assert.ok(second);
+
+  // Editing the second message without new pictures keeps the ones it had.
+  await runner.send(session.id, { text: '這張的價格是多少', edit: second.id });
+  await idle(store, session.id);
+  const edited = store.get(session.id)!.items.find((i) => i.kind === 'user' && i.text === '這張的價格是多少');
+  assert.deepEqual(edited?.kind === 'user' && edited.images, [ref]);
+  assert.match(seen.at(-1) ?? '', /img-abc-0123abcd\.png/);
+});
+
+test('no pictures: the prompt has no attachments block', async () => {
+  let seen = '';
+  const { store, runner, session } = setup(async (o) => {
+    seen = o.prompt;
+  });
+  await runner.send(session.id, { text: '你好' });
+  await idle(store, session.id);
+  assert.doesNotMatch(seen, /tripcode-attachments/);
+  assert.equal(store.get(session.id)!.items[0]?.kind === 'user' && 'images' in store.get(session.id)!.items[0]!, false);
+});

@@ -155,3 +155,15 @@ describe('day-structure rules (distance and time, not counts)', () => {
     assert.ok(issues.length > 0 && issues.every((i) => i.level === 'info'));
   });
 });
+
+
+test('a restaurant chosen from the food guide is re-checked before leaving once its proof is a month old', () => {
+  const t = (fetchedAt: string): Trip => ({
+    title: 'T', start: '2026-12-01', end: '2026-12-02', tz: 'Europe/Rome', party: { adults: 2, childrenAges: [] }, candidates: [],
+    days: [{ date: '2026-12-01', items: [{ id: 'm', kind: 'meal', title: 'Luzzi', loc: { lat: 1, lng: 1, fetchedAt }, placeId: 'osm:node/1', checks: { exists: { value: true, source: 'osm:node/1', fetchedAt, confidence: 'recent' } } } as never] }],
+  });
+  const now = new Date('2026-11-20T10:00:00Z');
+  assert.equal(readiness(t('2026-11-15T10:00:00Z'), { now }).some((i) => i.code === 'meal-check-stale'), false, 'five days old: fine');
+  const stale = readiness(t('2026-10-01T10:00:00Z'), { now }).find((i) => i.code === 'meal-check-stale');
+  assert.ok(stale && stale.level === 'info' && /Luzzi/.test(stale.message));
+});

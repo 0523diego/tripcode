@@ -13,10 +13,13 @@ import './styles/forms.css';
 import './styles/home.css';
 import './styles/agent.css';
 import './styles/office.css';
+import './styles/food.css';
 import './styles/inline.css';
 import './styles/idea.css';
+import './styles/daycolor.css';
 import './styles/mobile.css';
-import './styles/print.css';
+import './styles/print-doc.css';
+import './styles/print-page.css';
 
 const root = document.getElementById('root');
 if (root) {

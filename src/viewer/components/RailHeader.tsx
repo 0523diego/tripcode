@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Trip } from '../../core/types.ts';
-import { dayVar } from '../model.ts';
+import { dayColorSlots, dayColorVar } from '../../core/day-colors.ts';
 import type { TripEntry } from '../trips.ts';
 import { variantName } from '../variant.ts';
 
@@ -138,6 +138,7 @@ interface StripProps {
 }
 
 export function DayStrip({ trip, dayIdx, onDay }: StripProps) {
+  const slots = useMemo(() => dayColorSlots(trip), [trip]);
   const nav = useRef<HTMLElement | null>(null);
   const [edge, setEdge] = useState({ left: false, right: false });
 
@@ -212,7 +213,7 @@ export function DayStrip({ trip, dayIdx, onDay }: StripProps) {
             aria-label={`第 ${i + 1} 天 ${d.date}${d.title ? ` ${d.title}` : ''}`}
             title={d.title ?? ''}
             onClick={() => onDay(i)}
-            style={{ ['--c' as string]: `var(${dayVar(i)})` }}
+            style={{ ['--c' as string]: `var(${dayColorVar(slots[i]!)})` }}
           >
             <span className="ds-n">{i + 1}</span>
             <span className="ds-d">{shortDate(d.date)}</span>

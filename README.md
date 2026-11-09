@@ -8,7 +8,6 @@
 
 - **一趟旅行 = 一個資料夾。** 行程是 `trips/<id>/trip.ts`，一份 Claude Code 寫給你的型別化程式碼檔案；簡報是 `brief.md`；收藏的貼文是 `inbox/NN.md`。全部是純文字，用 git 管理版本。
 - **你的 Claude Code 是規劃者。** `.claude/skills/` 裡的技能教它怎麼訪談你、出骨架方案、整理貼文、套用留言、比價。
-- **還不知道要去哪也能開始。** 新增旅程會先帶你到一顆從太空看的衛星地球，用幾張問題卡片（預算、想看的風景、時間、跟誰去）加上 AI 推薦目的地，選定後才建立行程。
 - **本機網頁是檢視與少量編輯。** `npm run dev` 開啟 Vite 網頁：每日時間軸、地圖（Google 或離線 SVG）、已確定資訊欄、匯入欄、方案比較、列印。
 - **一組指令列工具給 AI 用。** `tripcode` CLI 查地點、算路線、健檢行程、匯出行事曆與 KML、提出順路建議。
 
@@ -42,35 +41,13 @@ cp .env.example .env     # 可選：不填 key 也能用（OpenStreetMap）；�
 npm run dev              # 開啟 http://localhost:5173
 ```
 
-打開網頁，按右上角的「＋ 新增旅程」：
-
-- **還不知道要去哪** → 走下一節的「找方向」，用卡片和 AI 一步步找到目的地與日期。
-- **已經知道去哪和日期** → 按「已經決定去哪和日期」填表建立；或在這個資料夾啟動 Claude Code，直接用中文說：
+接著在這個資料夾啟動 Claude Code，直接用中文說：
 
 ```text
 我想去瑞士 9 天
 ```
 
-`onboard-trip` 技能會訪談你、寫出 `trips/<id>/brief.md`，再由 `create-trip` 先給 2–3 種骨架方案，你選一個後逐層填入每日主題與景點。專案附了兩個示範行程（`switzerland-2027-06`、`tokyo-sample`），可以先打開看看長什麼樣子。
-
-### 第一次使用 AI 助手
-
-網頁右側的 AI 助手是用你電腦上的 Claude Code 來改行程，**需要你先登入過 Claude Code**。第一次打開時面板會問你要不要連接：按「安裝並連接」，它會把 Claude Agent SDK 裝進這個專案（只挑發布超過 7 天的版本，精確鎖版並寫入 `package.json` 與 `package-lock.json`）。沒有 AI 也能用卡片回答問題，但「推薦目的地」要靠 AI；也可以完全不開面板，直接在終端機用 Claude Code。
-
-## 從零開始：找方向
-
-![新增旅程：一顆慢慢自轉的衛星地球，左邊是第一個問題](docs/images/find-destination-start.jpg)
-
-第 0 步「找方向」給還沒有想法的人：
-
-1. **決定好要去哪了嗎？** 有，就直接說；沒有，就讓 AI 幫你找。
-2. **這趟比較在意什麼？** 預算、想看的風景與體驗，或兩個都在意。再依此問預算、想看什麼（山、海、城市、美食、古蹟……）、月份、天數、跟誰去。每一題都可以跳過，也可以隨時按「直接推薦」。
-3. **給你 3 個點子。** 每個點子會寫為什麼適合你、最佳月份、粗估花費（沒有來源的一律標「估計」），地球上會出現圖釘；滑過卡片地球就轉過去。不喜歡可以「再給我別的」。
-4. **選定後填日期，建立行程。** 地球拉近，然後進到地圖與每日行程；你說過的預算、同行與喜好會預先寫進 `brief.md`。
-
-![問題卡片浮在地球上，已回答的題目變成上方的小標籤，可以點回去修改](docs/images/find-destination-cards.jpg)
-
-點卡片和在 AI 面板打字是同一件事：答案都記在 `trips/<id>/idea.json`，兩邊會同步。目的地點子由 AI 憑知識提出，每次可能不同；價格和班次不會憑空編，沒有來源就標「估計」。地球使用 NASA 的衛星影像（公有領域）。
+`onboard-trip` 技能會訪談你、寫出 `trips/<id>/brief.md`，再由 `create-trip` 先給 2–3 種骨架方案，你選一個後逐層填入每日主題與景點。第一趟旅行之前，網頁沒有東西可看；專案附了兩個示範行程（`switzerland-2027-06`、`tokyo-sample`），可以先打開看看長什麼樣子。
 
 完整的一趟旅行流程請看 [`docs/GUIDE.md`](docs/GUIDE.md)。
 
@@ -119,7 +96,6 @@ npm run dev              # 開啟 http://localhost:5173
 | `export kml <tripId> [--file variant-b.ts]` | 匯出 KML（每天一個資料夾與路線） |
 | `optimize <tripId> --day N [--mode …] [--offline] [--keep id,id] [--start HH:MM]` | 提出某一天更短的順序；**只提出建議、不改檔** |
 | `export notion <tripId> [--file x.ts] [--parent <pageId>] [--dry-run]` | 同步到 Notion 頁面（手機看行程、含票券附件）；需要 `NOTION_TOKEN`、`NOTION_PARENT_PAGE_ID` |
-| `idea <new｜show｜answer｜places｜choose｜reject｜reject-round｜dates｜finish> <id> …` | 第 0 步「找方向」：讀寫 `trips/<id>/idea.json`（網頁與 AI 都用它）；`idea show <id> --pretty` 看問到哪一步 |
 | `list` | 列出所有旅程與日期 |
 | `new <tripId> --title … --start … --end … --tz … [--adults N] [--children 5,8] [--destination <id>] [--style <id>]` | 建立新旅程的空殼 `trips/<id>/`（也可用 `npm run new-trip -- <tripId> …`） |
 
@@ -141,7 +117,6 @@ TripCode 可以把行程（含票券 PDF／圖片）同步成一個 Notion 頁�
 profile.md                 個人偏好（跨旅程）
 destinations/<國家>.md      目的地指南（每條事實要有來源與查證日期）
 styles/<id>.md             旅行風格（步調、步行上限、預算分配）
-trips/<id>/idea.json       找方向的答案與候選（建成行程後移進該行程資料夾）
 trips/<id>/brief.md        這趟旅行的簡報
 trips/<id>/trip.ts         行程（已確定項目 locked + 候選地點）
 trips/<id>/variant-b.ts    選用：另一個方案，與 trip.ts 同型別
@@ -190,9 +165,7 @@ TripCode 與 Google、小紅書（Xiaohongshu）、Klook、KKday 皆無任何隸
 
 TripCode is an open-source, non-profit, local-first AI travel planner modeled on [open-slide](https://github.com/1weiho/open-slide). A trip is a folder of plain files (`trips/<id>/trip.ts`, typed by `src/core/types.ts`). Your own Claude Code edits them, guided by skills in `.claude/skills/`; a local Vite viewer renders a daily timeline and a colored route map. There is no server, database, account, or affiliate link, and no commission or hosted payment; booking is a checklist with plain links that you complete yourself. The office page (訂票清單) lists what the trip needs bought, with the official page and Klook / Trip.com links, and the meals that still have no place; you buy on the seller's own page. TripCode never pays and never handles a card.
 
-Not sure where to go yet? Step 0 (找方向) opens a slowly turning satellite Earth and a few question cards (budget, the scenery you want, when, who with); the AI suggests places and pins them on the globe, and once you pick one with dates the real trip is created. Clicking a card and typing to the AI panel do the same thing: both write `trips/<id>/idea.json`.
-
-Quickstart: `git clone` → `npm install` → `cp .env.example .env` (optional Google Maps key) → `npm run dev` (http://localhost:5173) → press "＋ 新增旅程", or open Claude Code in the folder and say what you want ("I want to go to Switzerland for 9 days"). The AI panel needs a Claude Code login on your machine and asks once to install the Claude Agent SDK into the project. The interface and skills are in Traditional Chinese.
+Quickstart: `git clone` → `npm install` → `cp .env.example .env` (optional Google Maps key) → `npm run dev` (http://localhost:5173) → open Claude Code in the folder and say what you want ("I want to go to Switzerland for 9 days"). The interface and skills are in Traditional Chinese.
 
 Limitations: no live hotel-price API for individuals (prices are cited reference prices read from public pages); no key is needed (places come from OpenStreetMap Nominatim, routes are straight-line estimates, the viewer draws an offline SVG map); an optional Google key upgrades POI data, live hours, real transit routes and the full Google map; 小紅書 content is import-by-paste only; PWA offline support is production-build only and not fully verified. See [`docs/GUIDE.md`](docs/GUIDE.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
 

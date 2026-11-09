@@ -10,9 +10,11 @@ import { Office } from './office/Office.tsx';
 import { agentContext } from './agent/context.ts';
 import { useAgent } from './agent/agent-store.ts';
 import { Itinerary } from './components/Itinerary.tsx';
+import { COLOR_NAMES } from './components/DayColorPicker.tsx';
 import { AddPlace } from './components/AddPlace.tsx';
 import { MapPanel, type MapInset } from './components/MapPanel.tsx';
-import { PrintView } from './components/PrintView.tsx';
+import { PrintLayer } from './print/PrintLayer.tsx';
+import { PrintPage } from './print/PrintPage.tsx';
 import { DayStrip, RailHeader } from './components/RailHeader.tsx';
 import { Home } from './components/Home.tsx';
 import { targetTitle } from './components/CommentLog.tsx';
@@ -136,6 +138,10 @@ export function App() {
   if (route.name === 'office' && import.meta.env.DEV) {
     const entry = trips.find((t) => t.id === route.id);
     if (entry) return <Office key={entry.id} entry={entry} />;
+  }
+  if (route.name === 'print') {
+    const entry = trips.find((t) => t.id === route.id);
+    if (entry) return <PrintPage key={entry.id} entry={entry} query={route.query} />;
   }
   if (route.name === 'trip' || route.name === 'office') {
     const entry = trips.find((t) => t.id === route.id);
@@ -468,6 +474,11 @@ function TripView({ trips, entry }: { trips: TripEntry[]; entry: TripEntry }) {
             onSchedule={(candidateId, toDate, beforeItemId) =>
               void send('schedule-candidate', { candidateId, toDate, beforeItemId }, '已排入行程')
             }
+            onColor={
+              import.meta.env.DEV
+                ? (dates, color) => void send('day-color', { dates, color }, color === null ? '已恢復自動顏色（同住宿同顏色）' : `已換成${COLOR_NAMES[color - 1]}色，⌘Z 可復原`)
+                : undefined
+            }
           />
         </>
       )}
@@ -487,7 +498,7 @@ function TripView({ trips, entry }: { trips: TripEntry[]; entry: TripEntry }) {
       onFacts={() => setTab('facts')}
       onCandidates={showCandidates}
       onInbox={() => setTab('inbox')}
-      onPrint={() => window.print()}
+      onPrint={() => go(`/trip/${tripId}/print${currentFile !== 'trip.ts' ? `?file=${currentFile}` : ''}`)}
     />
   );
   const detail = (embedded: boolean) => (
@@ -576,7 +587,7 @@ function TripView({ trips, entry }: { trips: TripEntry[]; entry: TripEntry }) {
       {selection && !showCompare && !mobile && !agentOpen && detail(false)}
       {import.meta.env.DEV && agentOpen && <AgentPanel context={agentView.context} contextLabel={agentView.label} onClose={() => setAgentOpen(false)} />}
 
-      <PrintView trip={trip} fileLabel={variantName(currentFile)} />
+      <PrintLayer trip={trip} />
       {entry.fixture && <div className="fixture-note">顯示範例資料（trips/ 內沒有行程）</div>}
       <div className="toast-region" role="status" aria-live="polite">
         {toast && <div className={`toast ${toast.ok ? 'ok' : 'err'}`}>{toast.text}</div>}

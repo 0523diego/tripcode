@@ -92,3 +92,13 @@ test('empty trip still yields a valid document', () => {
   assert.equal(count(kml, /<Folder>/g), 0);
   assert.ok(kml.includes('</Document>'));
 });
+
+test('days that share a hotel share a KML style, and a day color overrides it', () => {
+  const hotel = { id: 'h', kind: 'hotel' as const, title: 'H', nights: 2 };
+  const t: Trip = { ...trip, days: [{ ...trip.days[0]!, items: [...trip.days[0]!.items, hotel] }, { ...trip.days[1]!, color: 6 }] };
+  const kml = tripToKml(t);
+  assert.equal(count(kml, /<Style id="day1">/g), 1, 'one shared style for the hotel');
+  assert.equal(count(kml, /<Style id="day6">/g), 1, 'the override has its own style');
+  assert.equal(count(kml, /<styleUrl>#day1<\/styleUrl>/g) > 0, true);
+  assert.equal(count(kml, /<styleUrl>#day6<\/styleUrl>/g) > 0, true);
+});

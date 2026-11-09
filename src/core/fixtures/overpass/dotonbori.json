@@ -1,0 +1,535 @@
+{
+ "elements": [
+  {
+   "type": "node",
+   "id": 697381329,
+   "lat": 34.6651079,
+   "lon": 135.5019449,
+   "tags": {
+    "amenity": "cafe",
+    "brand": "STARBUCKS",
+    "brand:en": "Starbucks",
+    "brand:ja": "スターバックス",
+    "brand:wikidata": "Q37158",
+    "brand:wikipedia": "en:Starbucks",
+    "check_date": "2025-03-12",
+    "cuisine": "coffee_shop",
+    "disused:amenity": "cafe",
+    "name": "スターバックス",
+    "name:en": "Starbucks",
+    "name:ja": "スターバックス",
+    "name:ja-Hira": "すたーばっくす",
+    "name:ja-Latn": "Sutābakkusu",
+    "name:zh": "星巴克咖啡厅",
+    "official_name": "スターバックスコーヒー",
+    "official_name:en": "Starbucks Coffee",
+    "official_name:ja": "スターバックスコーヒー",
+    "takeaway": "yes",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1738362658,
+   "lat": 34.6685354,
+   "lon": 135.5014079,
+   "tags": {
+    "amenity": "cafe",
+    "brand": "スターバックス",
+    "brand:en": "Starbucks",
+    "brand:ja": "スターバックス",
+    "brand:wikidata": "Q37158",
+    "brand:wikipedia": "ja:スターバックス",
+    "check_date": "2026-07-06",
+    "cuisine": "coffee_shop",
+    "name": "スターバックス",
+    "name:en": "Starbucks",
+    "name:ja": "スターバックス",
+    "name:ja_rm": "Sutah-bakkusu",
+    "official_name": "スターバックスコーヒー",
+    "official_name:en": "Starbucks Coffee",
+    "official_name:ja": "スターバックスコーヒー",
+    "source": "Knowledge",
+    "takeaway": "yes",
+    "toilets:wheelchair": "no",
+    "website": "https://www.starbucks.co.jp/",
+    "wheelchair": "limited"
+   }
+  },
+  {
+   "type": "node",
+   "id": 2125085204,
+   "lat": 34.668286,
+   "lon": 135.500614,
+   "tags": {
+    "amenity": "fast_food",
+    "name": "たこ焼き赤鬼"
+   }
+  },
+  {
+   "type": "node",
+   "id": 2321863222,
+   "lat": 34.66628,
+   "lon": 135.501228,
+   "tags": {
+    "addr:housenumber": "3-7-24",
+    "amenity": "fast_food",
+    "check_date": "2026-07-06",
+    "cuisine": "japanese",
+    "name": "わなか",
+    "name:en": "Takoyaki Doraku Wanaka Namba",
+    "opening_hours": "Th-Tu 10:00-22:00"
+   }
+  },
+  {
+   "type": "node",
+   "id": 2326909849,
+   "lat": 34.668233,
+   "lon": 135.50211,
+   "tags": {
+    "amenity": "fast_food",
+    "name": "たこ八"
+   }
+  },
+  {
+   "type": "node",
+   "id": 2332911579,
+   "lat": 34.66823,
+   "lon": 135.502693,
+   "tags": {
+    "amenity": "restaurant",
+    "name": "お好み焼三平"
+   }
+  },
+  {
+   "type": "node",
+   "id": 2345130990,
+   "lat": 34.668081,
+   "lon": 135.501029,
+   "tags": {
+    "amenity": "restaurant",
+    "cuisine": "okonomiyaki",
+    "name": "味乃家",
+    "name:es": "Ajinoya"
+   }
+  },
+  {
+   "type": "node",
+   "id": 3921510958,
+   "lat": 34.6721572,
+   "lon": 135.4986326,
+   "tags": {
+    "amenity": "cafe",
+    "brand": "スターバックス",
+    "brand:en": "Starbucks",
+    "brand:ja": "スターバックス",
+    "brand:wikidata": "Q37158",
+    "cuisine": "coffee_shop",
+    "name": "スターバックス",
+    "name:en": "Starbucks",
+    "name:ja": "スターバックス",
+    "official_name": "スターバックスコーヒー",
+    "official_name:en": "Starbucks Coffee",
+    "official_name:ja": "スターバックスコーヒー",
+    "takeaway": "yes",
+    "wheelchair": "limited"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4711638492,
+   "lat": 34.667565,
+   "lon": 135.5034264,
+   "tags": {
+    "amenity": "restaurant",
+    "name": "お好み焼 おかる",
+    "name:en": "Okaru Okonomiyaki"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5359091982,
+   "lat": 34.6671614,
+   "lon": 135.5031851,
+   "tags": {
+    "amenity": "cafe",
+    "brand": "スターバックス",
+    "brand:en": "Starbucks",
+    "brand:ja": "スターバックス",
+    "brand:wikidata": "Q37158",
+    "brand:wikipedia": "ja:スターバックス",
+    "cuisine": "coffee_shop",
+    "level": "-1",
+    "location": "underground",
+    "name": "スターバックス",
+    "name:en": "Starbucks",
+    "name:ja": "スターバックス",
+    "official_name": "スターバックスコーヒー",
+    "official_name:en": "Starbucks Coffee",
+    "official_name:ja": "スターバックスコーヒー",
+    "takeaway": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5585813323,
+   "lat": 34.6688157,
+   "lon": 135.5033161,
+   "tags": {
+    "amenity": "fast_food",
+    "check_date": "2026-07-06",
+    "name": "たこ八",
+    "name:en": "Takohachi takoyaki",
+    "opening_hours": "Mo-Su 10:00-23:00",
+    "website": "https://www.takohachi.jp/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5692956392,
+   "lat": 34.6633823,
+   "lon": 135.5019701,
+   "tags": {
+    "amenity": "cafe",
+    "brand": "スターバックス",
+    "brand:en": "Starbucks",
+    "brand:ja": "スターバックス",
+    "brand:wikidata": "Q37158",
+    "brand:wikipedia": "ja:スターバックス",
+    "cuisine": "coffee_shop",
+    "level": "-1",
+    "name": "スターバックス",
+    "name:en": "Starbucks",
+    "name:ja": "スターバックス",
+    "official_name": "スターバックスコーヒー",
+    "official_name:en": "Starbucks Coffee",
+    "official_name:ja": "スターバックスコーヒー",
+    "takeaway": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5738734312,
+   "lat": 34.6666022,
+   "lon": 135.4958908,
+   "tags": {
+    "addr:city": "大阪府大阪市",
+    "addr:housenumber": "2-3",
+    "addr:postcode": "556-0017",
+    "addr:street": "浪速区湊町１丁目",
+    "amenity": "cafe",
+    "brand": "スターバックス",
+    "brand:en": "Starbucks",
+    "brand:ja": "スターバックス",
+    "brand:wikidata": "Q37158",
+    "brand:wikipedia": "ja:スターバックス",
+    "cuisine": "coffee_shop",
+    "level": "-1",
+    "level:ref": "B1F",
+    "name": "スターバックス",
+    "name:en": "Starbucks",
+    "name:ja": "スターバックス",
+    "official_name": "スターバックスコーヒー",
+    "official_name:en": "Starbucks Coffee",
+    "official_name:ja": "スターバックスコーヒー",
+    "outdoor_seating": "no",
+    "takeaway": "yes",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 6006267865,
+   "lat": 34.6637012,
+   "lon": 135.5010692,
+   "tags": {
+    "amenity": "cafe",
+    "brand": "スターバックス",
+    "brand:en": "Starbucks",
+    "brand:ja": "スターバックス",
+    "brand:wikidata": "Q37158",
+    "brand:wikipedia": "ja:スターバックス",
+    "cuisine": "coffee_shop",
+    "level": "2",
+    "name": "スターバックス",
+    "name:en": "Starbucks",
+    "name:ja": "スターバックス",
+    "official_name": "スターバックスコーヒー",
+    "official_name:en": "Starbucks Coffee",
+    "official_name:ja": "スターバックスコーヒー",
+    "takeaway": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 6807910188,
+   "lat": 34.6704211,
+   "lon": 135.5021513,
+   "tags": {
+    "amenity": "restaurant",
+    "cuisine": "okonomiyaki",
+    "level": "0",
+    "name": "おこのみやき三平",
+    "name:en": "Okonomiyaki Sanpei",
+    "website": "https://www.okonomiyaki-sanpei.com/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 6822561849,
+   "lat": 34.6659541,
+   "lon": 135.5017247,
+   "tags": {
+    "amenity": "cafe",
+    "branch": "エディオンなんば店",
+    "brand": "スターバックス",
+    "brand:en": "Starbucks",
+    "brand:ja": "スターバックス",
+    "brand:wikidata": "Q37158",
+    "brand:wikipedia": "ja:スターバックス",
+    "check_date": "2025-07-26",
+    "cuisine": "coffee_shop",
+    "level": "0;1",
+    "name": "スターバックス",
+    "name:en": "Starbucks",
+    "name:ja": "スターバックス",
+    "official_name": "スターバックスコーヒー",
+    "official_name:en": "Starbucks Coffee",
+    "official_name:ja": "スターバックスコーヒー",
+    "opening_hours": "07:00-22:30",
+    "outdoor_seating": "yes",
+    "ref": "1643",
+    "takeaway": "yes"
+   }
+  },
+  {
+   "type": "way",
+   "id": 180244952,
+   "center": {
+    "lat": 34.6652095,
+    "lon": 135.5034016
+   },
+   "tags": {
+    "amenity": "fast_food",
+    "branch": "千日前本店",
+    "building": "yes",
+    "cuisine": "japanese",
+    "name": "たこ焼道楽わなか",
+    "name:en": "Takoyaki Wanaka",
+    "source": "Bing,2011-4"
+   }
+  },
+  {
+   "type": "way",
+   "id": 222477943,
+   "center": {
+    "lat": 34.6677911,
+    "lon": 135.5029774
+   },
+   "tags": {
+    "addr:housenumber": "1-2-3",
+    "amenity": "fast_food",
+    "building": "yes",
+    "cuisine": "japanese",
+    "height": "10.2",
+    "name": "赤鬼",
+    "name:en": "Dotonbori Akoni (Takoyaki)",
+    "opening_hours": "Mo-Su 10:00-22:00",
+    "source": "GSI/KIBAN 2500; NARO",
+    "source:height": "MLIT_PLATEAU",
+    "source_ref": "http://wiki.osm.org/wiki/GSI_KIBAN"
+   }
+  },
+  {
+   "type": "way",
+   "id": 242241461,
+   "center": {
+    "lat": 34.6704418,
+    "lon": 135.4980087
+   },
+   "tags": {
+    "amenity": "restaurant",
+    "building": "yes",
+    "cuisine": "たこ焼き",
+    "name": "わなか",
+    "source": "GSI/KIBAN 2500;NARO",
+    "source_ref": "http://wiki.osm.org/wiki/GSI_KIBAN"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1287681230,
+   "lat": 34.6641654,
+   "lon": 135.5039801,
+   "tags": {
+    "amenity": "restaurant",
+    "name": "釜たけうどん",
+    "name:en": "Kamatake Udon"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1671341600,
+   "lat": 34.6688634,
+   "lon": 135.5015017,
+   "tags": {
+    "addr:postcode": "542-0071",
+    "amenity": "restaurant",
+    "branch": "道頓堀本店",
+    "brand": "かに道楽",
+    "cuisine": "seafood",
+    "name": "かに道楽",
+    "name:en": "Kanidoraku",
+    "name:ja": "かに道楽",
+    "name:ja-Latn": "Kanidoraku",
+    "name:ko": "카니도라쿠",
+    "name:zh": "道乐螃蟹专门店",
+    "opening_hours": "Mo-Su 11:00-23:00",
+    "source": "Bing 2010, (URL)",
+    "website": "https://douraku.co.jp/",
+    "wikidata": "Q11264072",
+    "wikimedia_commons": "Category:Kani Dōraku",
+    "wikipedia": "ja:かに道楽"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1738362660,
+   "lat": 34.6685903,
+   "lon": 135.5019452,
+   "tags": {
+    "addr:postcode": "542-0071",
+    "amenity": "restaurant",
+    "branch": "道頓堀店",
+    "brand": "がんこ寿司",
+    "cuisine": "sushi",
+    "indoor_seating": "yes",
+    "name": "がんこ寿司",
+    "name:en": "Gankozushi",
+    "name:ja": "がんこ寿司",
+    "name:ja-Latn": "Gankozushi",
+    "outdoor_seating": "no",
+    "source": "Knowledge",
+    "website": "https://www.gankofood.co.jp/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1888275521,
+   "lat": 34.6663994,
+   "lon": 135.5056651,
+   "tags": {
+    "amenity": "restaurant",
+    "cuisine": "ramen",
+    "internet_access": "no",
+    "name": "尾道ラーメン 月光仮面",
+    "source": "Knowledge",
+    "stars": "2",
+    "wheelchair": "no"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1906846937,
+   "lat": 34.6661463,
+   "lon": 135.5031404,
+   "tags": {
+    "amenity": "restaurant",
+    "cuisine": "居酒屋",
+    "name": "正宗屋",
+    "source": "Bing,2011-4"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1906846938,
+   "lat": 34.6661855,
+   "lon": 135.5031402,
+   "tags": {
+    "amenity": "restaurant",
+    "cuisine": "noodle;ramen",
+    "name": "三田製麺所",
+    "source": "Bing,2011-4",
+    "wheelchair": "no"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1906846974,
+   "lat": 34.6652567,
+   "lon": 135.5033931,
+   "tags": {
+    "amenity": "restaurant",
+    "cuisine": "noodle",
+    "name": "金龍ラーメン",
+    "name:en": "Kinryu Ramen",
+    "source": "Bing,2011-4",
+    "wheelchair": "no"
+   }
+  },
+  {
+   "type": "node",
+   "id": 2023047053,
+   "lat": 34.6673923,
+   "lon": 135.5062872,
+   "tags": {
+    "amenity": "restaurant",
+    "brand": "やよい軒",
+    "brand:en": "Yayoiken",
+    "brand:ja": "やよい軒",
+    "brand:th": "ยาโยอิ",
+    "brand:wikidata": "Q11280577",
+    "brand:wikipedia": "ja:やよい軒",
+    "cuisine": "japanese",
+    "name": "やよい軒",
+    "name:en": "Yayoiken",
+    "name:ja": "やよい軒",
+    "name:ja_rm": "Yayoiken",
+    "name:th": "ยาโยอิ",
+    "toilets:wheelchair": "no",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 2125086879,
+   "lat": 34.66838,
+   "lon": 135.50062,
+   "tags": {
+    "amenity": "restaurant",
+    "brand": "大阪王将",
+    "brand:en": "Osaka Ohsho",
+    "brand:ja": "大阪王将",
+    "brand:wikidata": "Q48743717",
+    "brand:wikipedia": "ja:大阪王将",
+    "brand:zh": "大阪王將",
+    "cuisine": "japanese;chinese",
+    "name": "大阪王将",
+    "name:en": "Osaka Ohsho",
+    "name:ja": "大阪王将",
+    "name:ja_rm": "Osaka Ohsho",
+    "name:zh": "大阪王將"
+   }
+  },
+  {
+   "type": "node",
+   "id": 2125103910,
+   "lat": 34.6713135,
+   "lon": 135.5012302,
+   "tags": {
+    "amenity": "restaurant",
+    "brand": "はなまるうどん",
+    "brand:en": "Hanamarūdon",
+    "brand:ja": "はなまるうどん",
+    "brand:wikidata": "Q11275674",
+    "brand:wikipedia": "ja:はなまるうどん",
+    "cuisine": "japanese;udon",
+    "name": "はなまるうどん",
+    "name:en": "Hanamarūdon",
+    "name:ja": "はなまるうどん",
+    "name:ja_rm": "Hanamaru Udon",
+    "wheelchair": "yes"
+   }
+  }
+ ]
+}

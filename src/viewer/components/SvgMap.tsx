@@ -398,6 +398,8 @@ export function SvgMap({ pins, routes, selectedKey, onSelect, inset }: Props) {
 
   // Selecting a stop (from the list, the facts bar or the map) keeps the day in frame: if the stop is already in
   // view it is only highlighted (nudged just enough to clear the panels); if not, frame previous → stop → next.
+  // Exception: a stop that is currently swallowed by a cluster pin (the whole-trip view) would show nothing
+  // happening, so it zooms to street level around that stop.
   // Runs after the fit effect above, so a selection that arrives together with a day change wins.
   useEffect(() => {
     if (!selectedKey || !proj) return;
@@ -405,7 +407,9 @@ export function SvgMap({ pins, routes, selectedKey, onSelect, inset }: Props) {
     const pin = pins[i];
     if (!pin) return;
     const base = proj.project(pin.lat, pin.lng);
+    const buried = layout.clusters.some((c) => c.pins.some((q) => q.key === selectedKey));
     setView((v) => {
+      if (buried) return frame([base], (STREET_SCALE * 1.02) / proj.s) ?? v;
       const sx = base.x * v.k + v.tx;
       const sy = base.y * v.k + v.ty;
       const { l, r } = proj.area;

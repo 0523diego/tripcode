@@ -1,5 +1,6 @@
 // KML 2.2 export (Google My Maps / Google Earth / Organic Maps). Pure string building.
 // Coordinates are written as "lng,lat,0" as KML requires.
+import { dayColorSlots } from './day-colors.ts';
 import type { Candidate, CandidateStatus, Item, Trip } from './types.ts';
 
 const STATUS_LABEL: Record<CandidateStatus, string> = {
@@ -69,10 +70,11 @@ export function tripToKml(trip: Trip): string {
   out.push(`    <name>${xmlEscape(trip.title)}</name>\n`);
   out.push(`    <description>${xmlEscape(`${trip.start} ~ ${trip.end}（${trip.tz}）`)}</description>\n`);
 
-  for (let i = 0; i < DAY_COLORS.length && i < trip.days.length; i++) {
-    const color = DAY_COLORS[i]!;
+  const slots = dayColorSlots(trip);
+  for (const slot of [...new Set(slots)].sort((a, b) => a - b)) {
+    const color = DAY_COLORS[slot - 1]!;
     out.push(
-      `    <Style id="day${i + 1}"><IconStyle><color>${kmlColor(color)}</color></IconStyle>` +
+      `    <Style id="day${slot}"><IconStyle><color>${kmlColor(color)}</color></IconStyle>` +
         `<LineStyle><color>${kmlColor(color, 'cc')}</color><width>4</width></LineStyle></Style>\n`,
     );
   }
@@ -82,7 +84,7 @@ export function tripToKml(trip: Trip): string {
 
   trip.days.forEach((day, i) => {
     const n = i + 1;
-    const styleId = `day${(i % DAY_COLORS.length) + 1}`;
+    const styleId = `day${slots[i]}`;
     const mmdd = day.date.slice(5).replace('-', '/');
     const name = `Day ${n} · ${mmdd}${day.title ? ` ${day.title}` : ''}`;
     out.push('    <Folder>\n');

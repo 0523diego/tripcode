@@ -1,0 +1,561 @@
+/* TripCode viewer — the 這餐吃什麼 drawer (src/viewer/food/MealDrawer.tsx). Opens from a meal that has no place yet on the 訂票清單 page:
+   dishes first, then real places nearby with the proof of each. Tokens and shared controls live in ../styles.css. */
+
+.fd {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: min(460px, 100vw);
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: -12px 0 32px rgb(0 0 0 / 0.28);
+}
+.fd-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.fd-head h2 {
+  margin: 0;
+  font-size: 15px;
+}
+.fd-head p {
+  margin: 2px 0 0;
+  font-size: 12px;
+}
+.fd-x {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.fd-x:hover {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.fd-body {
+  flex: 1;
+  min-height: 0;
+  padding: 12px 16px 28px;
+  overflow-y: auto;
+}
+.fd-anchor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+.fd-anchor select {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+}
+.fd-sec {
+  margin-bottom: 20px;
+}
+.fd-sec h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.fd-refind {
+  margin-left: auto;
+  padding: 3px 10px;
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+.fd-refind:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.fd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+.fd-chips button {
+  padding: 3px 10px;
+  border: 1px solid var(--border-2);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+.fd-chips button.on {
+  border-color: var(--err);
+  background: var(--err-soft);
+  color: var(--err);
+}
+.fd-empty p,
+.fd-note p {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.fd-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fd-guide label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.fd-guide input {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+}
+.fd-note {
+  padding: 10px 12px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.fd-note.warn {
+  border-color: var(--warn);
+}
+.fd-note a,
+.fd-place-foot a {
+  color: var(--accent);
+}
+
+/* dishes */
+.fd-dishes,
+.fd-places {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fd-dishes li {
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.fd-dishes li[data-vote='want'] {
+  border-color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 10%, var(--surface-2));
+}
+.fd-dish-top {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+}
+.fd-dish-top small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.fd-dishes p {
+  margin: 3px 0 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.fd-dish-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.fd-votes {
+  display: inline-flex;
+  gap: 4px;
+  flex: none;
+}
+.fd-votes button {
+  padding: 2px 10px;
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+.fd-votes button.on {
+  border-color: var(--ok);
+  background: var(--ok);
+  color: #fff;
+}
+.fd-more {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.fd-hiddennote {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
+/* badges: where a claim comes from */
+.fd-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1px solid var(--border-2);
+  border-radius: 999px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.fd-badge.good {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+.fd-badge.warn {
+  border-color: var(--warn);
+  color: var(--warn);
+  border-style: dashed;
+}
+
+/* places */
+.fd-places li {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.fd-place-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fd-place-top b {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+}
+.fd-rank {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  font-size: 11px;
+  font-weight: 600;
+}
+.fd-tier {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+}
+.fd-tier.safe {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+.fd-tier.check {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+.fd-places p {
+  margin: 3px 0 6px;
+  font-size: 12.5px;
+}
+.fd-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.fd-place-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 12.5px;
+}
+.fd-reject {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+.fd-credit {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+}
+
+@media (max-width: 700px) {
+  .fd {
+    width: 100vw;
+  }
+}
+
+.fd-dishes .fd-tags {
+  margin: 3px 0 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.proof {
+  margin: 0 0 6px;
+  padding-left: 18px;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.proof a,
+.proof-note a {
+  color: var(--accent);
+}
+.proof-note {
+  margin: 0;
+  font-size: 12px;
+}
+
+
+/* ---------- a place card ---------- */
+.fd-places li.fd-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.fd-media {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--surface);
+}
+.fd-media img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.fd-media.none {
+  display: grid;
+  place-items: center;
+  background: repeating-linear-gradient(135deg, var(--surface) 0 14px, color-mix(in srgb, var(--surface) 92%, var(--text)) 14px 28px);
+}
+.fd-nophoto {
+  padding: 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+.fd-media .fd-rank {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 24px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 12px;
+  backdrop-filter: blur(4px);
+}
+.fd-media .fd-tier {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  border-color: transparent;
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+.fd-media .fd-credit-link {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 11px;
+  text-decoration: none;
+}
+.fd-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px 4px;
+}
+.fd-name {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.3;
+}
+.fd-places .fd-meta {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.fd-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fd-places .fd-summary {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+.fd-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.fd-facts dt {
+  color: var(--muted);
+  white-space: nowrap;
+}
+.fd-facts dd {
+  margin: 0;
+}
+.fd-places .fd-sources {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.fd-sources a {
+  color: var(--accent);
+}
+.fd-places .fd-pending {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px dashed var(--border-2);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.fd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.fd-chip {
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+.fd-chip.good {
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+  color: var(--ok);
+}
+.fd-chip.warn {
+  background: color-mix(in srgb, var(--warn) 16%, transparent);
+  color: var(--warn);
+}
+.fd-details {
+  font-size: 12px;
+  color: var(--muted);
+}
+.fd-details summary {
+  cursor: pointer;
+  user-select: none;
+}
+.fd-details ul {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  line-height: 1.6;
+}
+.fd-card .fd-place-foot {
+  margin-top: auto;
+  padding: 10px 14px 12px;
+  gap: 8px;
+}
+.fd-card .fd-place-foot a {
+  padding: 3px 10px;
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  text-decoration: none;
+}
+.fd-card .fd-place-foot .fd-reject {
+  margin-left: auto;
+}
+
+/* The board on the left of the screen: the places the AI just looked at, side by side. */
+.fd-board-fold {
+  margin-left: auto;
+}
+.fd-board-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.3rem 0 0.5rem;
+  flex-wrap: wrap;
+}
+.fd-board-tabs button {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-2);
+  background: transparent;
+  color: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.fd-board-tabs button.on {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
+}
+.fd-board-note {
+  margin: 0 0 0.8rem;
+  font-size: 0.8rem;
+}
+.fd-places.fd-board-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: 14px;
+}

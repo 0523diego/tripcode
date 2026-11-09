@@ -1,0 +1,181 @@
+/* TripCode viewer — the print page (src/viewer/print/PrintPage.tsx): options on the left, a live preview of the sheets on
+   the right. The document itself is styled by print-doc.css; this file only frames it on screen and hides the frame when printing. */
+
+.pp {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+.pp-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.pp-top h1 {
+  margin: 0;
+  font-size: 16px;
+}
+.pp-body {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+.pp-options {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px 20px 32px;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  overflow-y: auto;
+}
+.pp-options h2 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.pp-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pp-choices label,
+.pp-check {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: baseline;
+  gap: 0 6px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.pp-choices label.on {
+  background: var(--accent-soft);
+}
+.pp-choices label small,
+.pp-check small {
+  grid-column: 2;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.pp-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+.pp-days button {
+  min-width: 32px;
+  height: 28px;
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+}
+.pp-days button.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+.pp-go {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding-top: 12px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.pp-go p {
+  margin: 0 0 8px;
+}
+.pp-go small,
+.pp-note {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.pp-go .btn {
+  width: 100%;
+}
+.pp-preview {
+  padding: 24px;
+  overflow: auto;
+  background: var(--bg);
+}
+.pp-previewnote {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.pp-empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* A section of the document is one sheet of paper on screen. */
+@media screen {
+  .pp-preview .pdoc > section {
+    box-sizing: border-box;
+    width: 210mm;
+    max-width: 100%;
+    margin: 0 auto 18px;
+    padding: 12mm;
+    background: #fff;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.25), 0 8px 24px rgb(0 0 0 / 0.12);
+    break-before: auto;
+  }
+  .pp-preview .pdoc > section.pd-day[data-break='false'] {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .pp-body {
+    grid-template-columns: 1fr;
+  }
+  .pp-options {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .pp-preview {
+    padding: 12px;
+  }
+}
+
+/* Printing the page prints only the document. */
+@media print {
+  .pp-top,
+  .pp-options,
+  .pp-go,
+  .pp-previewnote {
+    display: none !important;
+  }
+  .pp,
+  .pp-body,
+  .pp-preview {
+    display: block;
+    height: auto;
+    min-height: 0;
+    padding: 0;
+    margin: 0;
+    background: #fff;
+    overflow: visible !important;
+    border: 0;
+  }
+  /* Same wrapper behaviour as the trip page's print layer (.app clips its overflow). Without it Chrome drew a 3 mm hairline at
+     the foot of every sheet of this page. */
+  .pp {
+    position: relative;
+    overflow: hidden !important;
+  }
+}

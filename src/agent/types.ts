@@ -47,6 +47,8 @@ export type AgentItem =
       id: string;
       ts: string;
       text: string;
+      /** Repo-relative paths of pictures the user attached (see attachments.ts); the agent views them with Read. */
+      images?: string[];
       /** The provider history point just before this message, so editing it rewinds the conversation there. */
       resumeAt?: string;
     }

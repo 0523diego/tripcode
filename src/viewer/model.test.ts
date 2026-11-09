@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { dayVar, onVar } from './model.ts';
+import type { Trip } from '../core/types.ts';
+import { buildMapData, dayVar, onVar } from './model.ts';
 
 const css = readFileSync(new URL('./styles.css', import.meta.url), 'utf8');
 
@@ -59,4 +60,29 @@ test('body text colors are readable on the surfaces they sit on', () => {
       assert.ok(r >= 4.5, `${ink} on ${bg} = ${r.toFixed(2)}`);
     }
   }
+});
+
+test('every day\'s route starts and ends at the hotel, even on days with no hotel item', () => {
+  const trip: Trip = {
+    title: 't',
+    start: '2026-11-22',
+    end: '2026-11-24',
+    tz: 'Europe/Rome',
+    party: { adults: 1, childrenAges: [] },
+    candidates: [],
+    days: [
+      { date: '2026-11-22', items: [{ id: 'h', kind: 'hotel', title: 'Hotel', nights: 2, loc: { lat: 41.9, lng: 12.48 } }] },
+      { date: '2026-11-23', items: [{ id: 'museum', kind: 'poi', title: 'Museum', loc: { lat: 41.905, lng: 12.454 } }] },
+      { date: '2026-11-24', items: [] },
+    ],
+  };
+  const day2 = buildMapData(trip, 1);
+  assert.deepEqual(day2.routes[0]?.points.map((p) => p.lat), [41.9, 41.905, 41.9]);
+  const stay = day2.pins.find((p) => p.key === 'item:h');
+  assert.equal(stay?.label, '宿');
+  assert.equal(day2.pins.length, 2);
+  // In the whole-trip view the hotel's own numbered pin is reused rather than duplicated.
+  const all = buildMapData(trip, null);
+  assert.equal(all.pins.filter((p) => p.key === 'item:h').length, 1);
+  assert.equal(all.pins.find((p) => p.key === 'item:h')?.label, '1');
 });

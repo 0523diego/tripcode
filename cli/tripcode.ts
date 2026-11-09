@@ -13,6 +13,8 @@ import { notionCommand } from './commands/notion.ts';
 import { NotionApiError } from './notion.ts';
 import { newTripCommand } from './commands/new-trip.ts';
 import { buyCommand } from './commands/buy.ts';
+import { flightsCommand } from './commands/flights.ts';
+import { foodCommand } from './commands/food.ts';
 import { ideaCommand } from './commands/idea.ts';
 import { GoogleApiError } from './google.ts';
 import { OsmApiError } from './osm.ts';
@@ -38,6 +40,8 @@ export const USAGE = `用法：tripcode <command> [選項]（加 --pretty 輸出
                                                   第 0 步「找方向」：不知道去哪的人，一題一題問到目的地和日期，再建立行程（tripcode idea --help）
   list
   service <install|uninstall|status|restart|logs>   讓 TripCode 常駐在背景（macOS）：登入就自動啟動，不用每次再開（tripcode service --help）
+  food <show|taste|vote|dish|evidence|reject> …           這趟要吃什麼：必吃的菜、口味、看過的店與證據（tripcode food --help）
+  flights <quote|dates|trip|status> …                    機票報價（Google Flights 公開頁面，預設關閉，要在 .env 設 TRIPCODE_FLIGHTS=1；tripcode flights --help）
   buy <watch|scan|alerts|browser> …                      開賣日提醒、價格監控、在 TripCode 自己的 Chrome 讀頁面（不付款；tripcode buy --help）
 `;
 
@@ -47,6 +51,10 @@ export async function run(argv: string[], ctx: CliContext): Promise<number> {
     if (argv[0] === 'buy') return await buyCommand(ctx, argv.slice(1));
     // `idea` takes --json / --trip-id, which the generic parser does not know; it calls parseArgs itself for the rest.
     if (argv[0] === 'idea') return await ideaCommand(ctx, argv.slice(1));
+    // `food` has its own sub-commands and flags (cli/commands/food.ts).
+    if (argv[0] === 'food') return await foodCommand(ctx, argv.slice(1));
+    // `flights` has its own sub-commands and flags (cli/commands/flights.ts).
+    if (argv[0] === 'flights') return await flightsCommand(ctx, argv.slice(1));
     // `service` also has its own flags (--port) and never goes through the generic parser.
     if (argv[0] === 'service') return await serviceCommand(ctx, argv.slice(1));
     const args = parseArgs(argv);

@@ -351,6 +351,9 @@ planned trip turns into purchases the user makes themselves, and the buying robo
 | `setBooking` / `setItemLoc`: minimal edits that touch only the asked `booking` fields (round-trips byte for byte) | `src/core/source-edit.ts` |
 | `POST /__tripcode/booking` (booked / not-needed / todo; booked also locks, stamps `bookedAt`, `boughtVia`, optional times; one undo step; settles a matching proposed purchase intent) and `POST /__tripcode/meal` (fills a placeholder meal or inserts a meal at the chosen place) | `vite-plugin-tripcode.ts` |
 | `POST /__tripcode/cover` `{tripId, dataBase64}` stores the home-page cover photo as `trips/<id>/cover.jpg` (JPEG only, checked by its first bytes, at most 700 KB; the viewer shrinks any picture to about 1200 px first; never creates a trip folder; not part of undo), `POST /__tripcode/cover-remove` `{tripId}` deletes it. The booking page groups cards by `Day.city`, else by the hotel you sleep in | `vite-plugin-tripcode.ts`, `src/viewer/cover.ts`, `src/viewer/office/booking-model.ts` |
+| `POST /__tripcode/trip-delete` `{tripId}` deletes a trip or an unfinished idea: the whole `trips/<id>/` folder is moved to `.tripcode-trash/<id>-<time>/` (gitignored, outside `trips/` so the viewer never lists it), never erased, so a mistaken click is recoverable by moving it back. Only an existing folder directly under `trips/` moves; a missing trip or a bad id is refused. Not undoable through the edit history. The home page asks twice (a button, then a confirmation on the card) and removes the trip's AI conversations. |
+| `Day.color` (1–8) and `dayColorSlots(trip)`: the color of each day. Days that sleep in the same hotel (the night's hotel, or last night's on the day you leave) share one palette slot, handed out in the order the trip reaches each hotel; a day with no hotel gets a slot of its own, so a trip with no hotels looks as before. A day's own `color` wins and does not move anyone else's. The slots are the viewer's `--day-1`…`--day-8` and the KML export's styles. `POST /__tripcode/day-color` `{tripId, file, dates, color}` sets (or, with `color: null`, clears) the color of those days in one undoable write; the color dot beside each day's heading opens the picker (default: change every day of the same hotel together, 恢復自動 clears). `check` warns on a `color` outside 1–8 | `src/core/day-colors.ts`, `src/core/source-edit.ts` (`setDayColor`), `vite-plugin-tripcode.ts`, `src/viewer/components/DayColorPicker.tsx` |
+| The booking page's 行程 button (beside AI 助手) opens the day-by-day plan in its own column, read-only: the same `Itinerary` as the map page with `readOnly` (no drag handles, no inline editing, no 待排入 rows, no color picker) under a day strip. Open together with the AI panel it sits to its left; below 1180 px wide opening one closes the other; on a phone it stacks under the list | `src/viewer/office/TripSide.tsx`, `src/viewer/office/Office.tsx`, `src/viewer/components/Itinerary.tsx` |
 | `POST /__tripcode/idea-new` `{tripId}` creates `trips/<id>/idea.json` (refuses an existing folder) → `{ok, tripId, idea, next}`; `POST /__tripcode/idea` `{tripId, op}` with `op` = `answer` `{field, value}` (`value: null` skips) \| `choose` `{placeId}` \| `reject` `{placeId}` \| `reject-round` \| `dates` `{start, end}` → `{ok, idea, next}` (never creates a folder; the page never writes places, the AI does that through `tripcode idea places`); `POST /__tripcode/idea-finish` `{tripId, title?, tz?, adults?, childrenAges?}` creates `trips/<newId>/` (trip.ts, brief.md prefilled from the answers, inbox/), moves idea.json in and removes the old folder when nothing else is in it → `{ok, tripId: newId, files}`. Plain file operations, not part of undo. `tripcode idea <new\|show\|answer\|places\|choose\|reject\|reject-round\|dates\|finish>` does the same from the CLI; all of it goes through the pure `src/core/idea.ts` (parse, validate, `nextStep`). See `docs/FIND-DESTINATION.md` | `vite-plugin-tripcode.ts`, `cli/commands/idea.ts`, `src/core/idea.ts`, `.claude/skills/find-destination/SKILL.md` |
 | The page `#/trip/<id>/office` (button 「訂票清單」): 出發準備 card, 訂票清單 (grouped by urgency, three link buttons per row, 「我買好了」 with where it was bought), 吃飯空檔 (anchor choice, Maps search link, paste the chosen place back), the AI panel docked; a collapsed 「盯價與開賣提醒」 section lists the watches and their alerts | `src/viewer/office/` |
 | Skills: `booking-checklist`, `review-trip`, `fill-meals`; the agent prompt now defaults to review and fill, not to buying | `.claude/skills/`, `src/agent/prompt.ts` |
@@ -375,3 +378,36 @@ What v1.5 built and what is left of it:
 
 Why it was removed: the review found it was never verified on a real merchant and the idea runs into 3-D Secure, logins and bot detection; the AI's
 value here is organising what to book, not paying.
+
+## 機票查價與聊天室圖片（2026-11-07）
+
+| 功能 | 做法 | 檔案 |
+|---|---|---|
+| 聊天室貼圖 | 貼上 / 拖進 / 選取；瀏覽器縮到長邊 1600px 再上傳；存 `trips/<id>/attachments/`（無行程資料夾時存 `node_modules/.tripcode/attachments/`）；訊息帶路徑，AI 用 Read 工具看 | `src/agent/attachments.ts`、`routes.ts`（`/uploads`、`/files`）、`src/viewer/agent/{useAttachments,image-prep}.ts` |
+| 聊天室表格與圖片 | Markdown 表格；`![說明](trips/…)` 只顯示 `trips/` 底下的圖片，外部網址不自動載入 | `src/viewer/agent/markdown.ts(x)` |
+| 機票查價（預設關閉） | `tripcode flights quote\|dates\|trip\|status`；`TRIPCODE_FLIGHTS=1` 啟用；讀 Google Flights 公開搜尋頁的內嵌 JSON；零依賴；限速、快取、斷路器；快照寫 `trips/<id>/prices/flights.json` | `src/prices/flights-{url,parse,fetch,store,client}.ts`、`cli/commands/flights.ts` |
+
+機票查價的已知限制：非官方、違反 Google 條款；必須用 Chrome 風格的 User-Agent（誠實字串會被導到「不支援」頁）；多城市（開口）行程查不到；每個日期都要抓一頁（約 2.4 MB），所以找最便宜日期要抽樣；Google 改版時 `flights-parse.ts` 的 `IDX` 表要跟著改（出錯會指出是哪個欄位位置）。
+
+## 列印行程（2026-11-07 重做）
+
+| 部分 | 做法 | 檔案 |
+|---|---|---|
+| 文件模型 | `buildPrintDocument(trip, options, {now, todayIdx})` 純函式：封面／每天／訂票總表／候選景點／筆記；`ticketsSection`（附件票券）、`estimateDayMm`、`planBreaks`、`selectDays` | `src/viewer/print/print-model.ts` |
+| 選項 | 網址查詢 ⇄ 選項（`parsePrintQuery`/`toPrintQuery`）、記住口味類選擇（`tripcode.print`）、PDF 檔名、頁數估計 | `src/viewer/print/print-options.ts` |
+| 畫面 | `PrintDocumentView`（預覽與列印共用；動態 `@page`：紙張、頁首頁尾、每天一個 named page）、`PrintPage`（選項＋預覽）、`PrintLayer`（行程頁隱藏的列印層，⌘P 用） | `src/viewer/print/*.tsx` |
+| 樣式 | `print-doc.css`（文件本體，列印日顏色 `--print-day-N`）、`print-page.css`（設定頁外框，列印時隱藏） | `src/viewer/styles/` |
+
+已知限制：沒有地點 QR（只印使用者附的票券，QR 在票上）；PDF 票券需要 `pdftoppm` 或 Mac 的 `sips`；`@page` 頁首頁尾在 Safari/Firefox 的支援沒測；預覽的分頁是近似，實際以瀏覽器為準；沒有英文或當地語言版標籤。
+
+## 吃什麼（2026-11-07）
+
+| 部分 | 做法 | 檔案 |
+|---|---|---|
+| 資料檔 | `trips/<id>/food.json`：dishes（每道有 sources；只有 `kind: ai` 的標「AI 的印象」）、taste、votes、places（證據 exists／open-at-slot／recommended…，各有來源與日期）、rejected、attribution。**沒有評分欄位**；未知欄位一律拒絕；web／michelin／guide-wikivoyage 證據一定要有 https 網址 | `src/core/food-types.ts`、`food.ts` |
+| 菜 | 英文 Wikivoyage Eat 段（MediaWiki API 兩次請求，1 次/秒，帶說明性 User-Agent）→ 三種版式的菜名（清單／infobox、斜體加當地文字、散文粗體）＋由字面推的 tags；只存菜名與連結，不存原文（CC BY-SA）；已有的菜不覆蓋 | `src/core/wikivoyage-food.ts`、`cli/wikivoyage.ts` |
+| 店 | Overpass（OSM，ODbL）→ venues（disused/abandoned 不給）→ 去重（40 m＋名稱）→ 對菜（店名／菜系／傳統餐館字）→ 營業時間檢查（打烊前 45 分鐘、跨午夜）→ 以證據排序（推薦、店名對菜、有營業、資料新、有網站；連鎖與遠扣分）；無法對上任何菜就 `generalMode` | `src/core/food-find.ts`、`opening-hours-osm.ts`、`cli/overpass.ts`、`cli/food-service.ts` |
+| 加入行程 | `meal` endpoint 收 `place`（key、name、loc、dishes、evidence）；沒有「存在」證據、壞的 key／座標／slot、多餘欄位（如 rating）一律拒絕；填進「待選」或新增一餐，寫 name／loc／placeId／slot／dishes／checks，可復原 | `vite-plugin-tripcode.ts`、`src/core/food.ts`（`mealFromPlace`）、`source-edit.ts`（`setMealPlace`） |
+| 畫面 | 訂票清單的「找吃的 →」開 `MealDrawer`（菜卡、口味、附近的店、證據徽章、加入／不要／Google 地圖）；`food` endpoint＋`tripcode:food` 事件（不用 glob 載入，免得每次投票都重整頁面）；行程詳細資料的 `MealProof` | `src/viewer/food/*`、`styles/food.css` |
+
+已知限制：OSM 沒有評分，營業時間只有 16–45% 有寫、很多格式讀不懂（讀不懂就是「未知」）；義大利的店名不會寫菜名，所以多半是 generalMode；Wikivoyage 的菜單是「城市出名吃什麼」，不是「這家店做得好不好」；Google Places 路徑（評分即時顯示、不存檔）還沒做；菜的圖片（Wikidata P18）還沒做；行程頁的空餐列還沒有直接的「找吃的」按鈕（在詳細資料裡有）。

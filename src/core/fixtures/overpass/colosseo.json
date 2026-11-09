@@ -1,0 +1,323 @@
+{
+ "elements": [
+  {
+   "type": "node",
+   "id": 1536870110,
+   "lat": 41.8930172,
+   "lon": 12.4880406,
+   "tags": {
+    "addr:housenumber": "40",
+    "addr:street": "Largo Corrado Ricci",
+    "amenity": "restaurant",
+    "check_date": "2024-07-24",
+    "cuisine": "pizza;italian;regional",
+    "indoor_seating": "yes",
+    "name": "Angelino ai Fori",
+    "outdoor_seating": "yes",
+    "payment:cash": "yes",
+    "payment:maestro": "yes",
+    "payment:mastercard": "yes",
+    "payment:visa": "yes",
+    "wheelchair": "limited"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1660404843,
+   "lat": 41.8940973,
+   "lon": 12.4894514,
+   "tags": {
+    "amenity": "restaurant",
+    "check_date": "2026-09-23",
+    "cuisine": "regional",
+    "name": "Taverna Romana"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4283615592,
+   "lat": 41.8890198,
+   "lon": 12.4943005,
+   "tags": {
+    "addr:city": "Roma",
+    "addr:housenumber": "6",
+    "addr:postcode": "00184",
+    "addr:street": "Via Capo d'Africa",
+    "amenity": "restaurant",
+    "indoor_seating": "yes",
+    "name": "Osteria Angelino dal 1899",
+    "opening_hours": "11:00-24:00",
+    "outdoor_seating": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4556016298,
+   "lat": 41.8895287,
+   "lon": 12.4954434,
+   "tags": {
+    "addr:housenumber": "4",
+    "addr:postcode": "00184",
+    "addr:street": "Via Ostilia",
+    "air_conditioning": "yes",
+    "amenity": "restaurant",
+    "cuisine": "regional",
+    "facebook": "Divin-Ostilia-Wine-Bar-847778075304057",
+    "lgbtq": "no",
+    "name": "Divin Ostilia",
+    "name:it": "Divin Ostilia",
+    "opening_hours": "Mo-Su 12:00-01:00"
+   }
+  },
+  {
+   "type": "node",
+   "id": 7082306423,
+   "lat": 41.8892927,
+   "lon": 12.4966238,
+   "tags": {
+    "addr:city": "Roma",
+    "addr:housenumber": "88",
+    "addr:street": "Via di San Giovanni in Laterano",
+    "amenity": "restaurant",
+    "cuisine": "italian;pizza",
+    "internet_access": "no",
+    "name": "Trattoria Pizzeria Luzzi",
+    "opening_hours": "Th-Tu 12:00-24:00",
+    "oven": "wood_fired",
+    "smoking": "no",
+    "start_date": "1945",
+    "website": "https://trattorialuzzi.it/il-nostro-menu/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 7785070630,
+   "lat": 41.8893426,
+   "lon": 12.4951477,
+   "tags": {
+    "addr:housenumber": "66",
+    "addr:street": "Via dei Santi Quattro",
+    "amenity": "restaurant",
+    "cuisine": "regional",
+    "lgbtq": "welcome",
+    "name": "Antica Trattoria Pasqualino Al Colosseo",
+    "opening_hours": "Mo-Su 11:00-00:00",
+    "outdoor_seating": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 9913430144,
+   "lat": 41.8889445,
+   "lon": 12.4964535,
+   "tags": {
+    "addr:city": "Roma",
+    "addr:postcode": "00184",
+    "addr:street": "Via San Giovanni in Laterano, 88",
+    "amenity": "restaurant",
+    "changing_table": "no",
+    "cuisine": "italian",
+    "level": "0",
+    "name": "4 e 4'Otto by \"Luzzi\" dal 1945",
+    "opening_hours": "Mo-Su 12:00-24:00",
+    "payment:cash": "yes",
+    "payment:maestro": "yes",
+    "payment:mastercard": "yes",
+    "payment:v_pay": "yes",
+    "payment:visa": "yes",
+    "takeaway": "no",
+    "toilets": "yes",
+    "toilets:access": "customers",
+    "website": "https://www.trattorialuzzi.it/4e4otto-by-luzzi/",
+    "wheelchair": "no"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1147386907,
+   "lat": 41.8894856,
+   "lon": 12.4945929,
+   "tags": {
+    "addr:city": "Roma",
+    "addr:country": "IT",
+    "addr:housenumber": "63",
+    "addr:postcode": "00184",
+    "addr:street": "Via dei Santi Quattro",
+    "amenity": "restaurant",
+    "name": "La Pace del Cervello"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1319030071,
+   "lat": 41.8944211,
+   "lon": 12.4905606,
+   "tags": {
+    "addr:city": "Roma",
+    "addr:housenumber": "53-56",
+    "addr:street": "Via Madonna dei Monti",
+    "amenity": "restaurant",
+    "cuisine": "chinese",
+    "name": "La Pace"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1530298843,
+   "lat": 41.8888384,
+   "lon": 12.4986526,
+   "tags": {
+    "amenity": "restaurant",
+    "indoor_seating": "yes",
+    "name": "Hostaria Isidoro Al Colosseo",
+    "outdoor_seating": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1536870121,
+   "lat": 41.8931257,
+   "lon": 12.4882373,
+   "tags": {
+    "addr:housenumber": "37",
+    "addr:street": "Largo Corrado Ricci",
+    "amenity": "restaurant",
+    "cuisine": "pizza",
+    "name": "Pizzeria Imperiale",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1660412593,
+   "lat": 41.8937195,
+   "lon": 12.489126,
+   "tags": {
+    "addr:housenumber": "313",
+    "addr:postcode": "00184",
+    "addr:street": "Via Cavour",
+    "amenity": "restaurant",
+    "cuisine": "regional",
+    "name": "Enoteca Cavour 313",
+    "restaurant:type": "enoteca",
+    "website": "https://www.cavour313.it/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1688847325,
+   "lat": 41.8897129,
+   "lon": 12.4941649,
+   "tags": {
+    "amenity": "restaurant",
+    "cuisine": "italian",
+    "diet:vegetarian": "yes",
+    "indoor_seating": "yes",
+    "lgbtq": "no",
+    "name": "Gran Caffe Martini & Rossi",
+    "opening_hours": "Mo-Su 08:30-01:00",
+    "outdoor_seating": "yes",
+    "website": "https://www.caffemartiniroma.com/",
+    "website:menu": "https://www.caffemartiniroma.com/restaurant-menu-colosseum/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1688847351,
+   "lat": 41.8894459,
+   "lon": 12.494046,
+   "tags": {
+    "addr:housenumber": "5",
+    "addr:street": "Via Celio Vibenna",
+    "amenity": "restaurant",
+    "cuisine": "italian",
+    "indoor_seating": "yes",
+    "lgbtq": "no",
+    "name": "Al Gladiatore",
+    "outdoor_seating": "no"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1688847355,
+   "lat": 41.8899551,
+   "lon": 12.4942704,
+   "tags": {
+    "addr:housenumber": "1",
+    "addr:postcode": "00184",
+    "addr:street": "Piazza del Colosseo",
+    "amenity": "restaurant",
+    "cuisine": "italian",
+    "indoor_seating": "yes",
+    "lgbtq": "no",
+    "name": "Royal art café",
+    "outdoor_seating": "yes",
+    "website": "https://www.royalartcafe.it/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1923912448,
+   "lat": 41.8951419,
+   "lon": 12.4935362,
+   "tags": {
+    "addr:city": "Roma",
+    "addr:country": "IT",
+    "addr:housenumber": "195",
+    "addr:postcode": "00184",
+    "addr:street": "Via Cavour",
+    "amenity": "restaurant",
+    "drive_in": "no",
+    "name": "L'archetto di Cavour",
+    "wheelchair": "limited"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1987857548,
+   "lat": 41.8890939,
+   "lon": 12.4965723,
+   "tags": {
+    "addr:city": "Roma",
+    "addr:housenumber": "7",
+    "addr:postcode": "00184",
+    "addr:street": "Via Celimontana",
+    "amenity": "restaurant",
+    "cuisine": "italian",
+    "name": "Naumachia",
+    "name:ko": "나우마키아",
+    "website": "https://www.naumachiaroma.com/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1998779872,
+   "lat": 41.8890686,
+   "lon": 12.4974302,
+   "tags": {
+    "addr:city": "Roma",
+    "addr:country": "IT",
+    "addr:housenumber": "106",
+    "addr:postcode": "00184",
+    "addr:street": "Via di San Giovanni in Laterano",
+    "amenity": "restaurant",
+    "cuisine": "italian",
+    "description": "Osteria",
+    "name": "I clementini",
+    "source": "GPS",
+    "website": "https://www.iclementini.it/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 2735002326,
+   "lat": 41.8936579,
+   "lon": 12.4888985,
+   "tags": {
+    "addr:housenumber": "315",
+    "amenity": "restaurant",
+    "name": "Baires Imperiale"
+   }
+  }
+ ]
+}

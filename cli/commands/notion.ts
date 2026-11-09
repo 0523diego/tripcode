@@ -56,7 +56,10 @@ export async function notionCommand(ctx: CliContext, args: ParsedArgs): Promise<
   }
   const core = await ctx.loadCore();
   const issues: Issue[] = core.checkTrip(trip);
-  const blocks = renderTrip({ trip, issues, mapsLinks: (d) => core.dayMapsLinks(d), syncedAt: formatTime(ctx.now()) });
+  const blocks = renderTrip({ trip, issues, mapsLinks: (d) => {
+      const l = core.lodgingByDay?.(trip)?.[trip.days.indexOf(d)];
+      return core.dayMapsLinks(d, { start: l?.start?.item, end: l?.end?.item });
+    }, syncedAt: formatTime(ctx.now()) });
   const title = file === 'trip.ts' ? trip.title : `${trip.title}（${file.replace(/\.ts$/, '')}）`;
 
   if (dry) {

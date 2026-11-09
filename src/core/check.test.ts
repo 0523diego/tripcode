@@ -352,3 +352,25 @@ test('day-overload: poi.minutes counts as stay when there is no end time', () =>
   const t = trip([day('2026-06-14', [stop('a', at(47.0), { start: '09:00', minutes: 120 }), bus('t'), stop('b', at(47.0), { start: '10:00', minutes: 30 })])]);
   assert.deepEqual(codes(t), ['day-overload']);
 });
+
+test('a day color outside 1–8 is a warning, a valid one is not', () => {
+  const ok = trip([{ ...day('2026-06-15', []), color: 3 }]);
+  assert.equal(codes(ok).includes('day-color'), false);
+  for (const bad of [0, 9, 2.5]) {
+    const t = trip([{ ...day('2026-06-15', []), color: bad }]);
+    const issue = checkTrip(t).find((i) => i.code === 'day-color');
+    assert.equal(issue?.level, 'warn', String(bad));
+    assert.equal(issue?.date, '2026-06-15');
+  }
+});
+
+test('a meal\'s checks are Sourced facts: a missing source is an error, a proper one passes', () => {
+  const meal = (checks: unknown): Item => ({ id: 'm', kind: 'meal', title: 'Luzzi', checks }) as unknown as Item;
+  const good = { exists: src(true), openAtSlot: src(true), recommendedBy: [{ ...src('文章推薦'), source: 'https://example.com/guide' }] };
+  assert.deepEqual(checkTrip(trip([day('2026-06-14', [meal(good)])])).filter((i) => i.code === 'missing-source'), []);
+  const bare = checkTrip(trip([day('2026-06-14', [meal({ exists: true })])])).filter((i) => i.code === 'missing-source');
+  assert.equal(bare.length, 1);
+  assert.match(bare[0]!.message, /餐廳存在/);
+  const noDate = checkTrip(trip([day('2026-06-14', [meal({ exists: { value: true, source: 'osm:node/1', confidence: 'recent' } })])])).filter((i) => i.code === 'missing-source');
+  assert.equal(noDate.length, 1);
+});

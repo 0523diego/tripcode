@@ -182,9 +182,10 @@ export async function exportCommand(ctx: CliContext, args: ParsedArgs): Promise<
   } else {
     outFile = path.join(dir, file === 'trip.ts' ? 'links.md' : file.replace(/\.ts$/, '-links.md'));
     const lines = [`# ${trip.title}`, '', '各天 Google Maps 路線連結（點開即可導航）。', ''];
+    const lodging = core.lodgingByDay?.(trip);
     trip.days.forEach((day, i) => {
       lines.push(`## 第 ${i + 1} 天 ${day.date}${day.title ? ` ${day.title}` : ''}`, '');
-      const links = core.dayMapsLinks(day);
+      const links = core.dayMapsLinks(day, { start: lodging?.[i]?.start?.item, end: lodging?.[i]?.end?.item });
       if (links.length === 0) lines.push('（這天沒有可導航的地點）');
       links.forEach((url, j) => lines.push(links.length > 1 ? `- [路線 ${j + 1}](${url})` : `- [路線](${url})`));
       lines.push('');

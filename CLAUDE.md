@@ -13,6 +13,7 @@ Read `docs/SPEC.md` before changing code. Progress lives in `PROGRESS.md`.
   and a reseller (Klook, Trip.com, ...) is never presented as the official page.
 - **You never pay.** The user buys from the 訂票清單 page, on the seller's own page. TripCode has no payment layer (taken out 2026-11-04; a copy
   is kept outside the repo): never ask for or write a card number, CVC or passphrase anywhere, never read `~/.tripcode/` (TripCode's own Chrome profile).
+- **Flight prices are an opt-in, unofficial read** (`tripcode flights`, `src/prices/`, off unless `TRIPCODE_FLIGHTS=1`): it reads Google Flights' public search page, which Google's terms do not allow, so it is personal, low-frequency use only. Never run it in a loop or on a schedule, never send cookies or click through Google's consent page, stop at any block or pause and give the user the Google Flights link instead. Every price is a dated snapshot ("Google 顯示價，訂票前以官方為準"); it never edits `trip.ts`. Uses no dependency (Node `fetch` only).
 - Do not add dependencies. Versions in package.json are exact; never use a version published
   less than 7 days ago; keep package-lock.json committed. The one exception is `@anthropic-ai/claude-agent-sdk`:
   it is opt-in, installed only when the user presses 「安裝並連接」 in the viewer's AI 助手 panel (which pins the newest
@@ -33,7 +34,7 @@ Read `docs/SPEC.md` before changing code. Progress lives in `PROGRESS.md`.
 - Pending inbox tiles (`trips/<id>/inbox/NN.md`, pasted posts) → `import-inbox`.
 - 「幫我看看這個行程」「審稿」「出發前檢查」 → `review-trip` (read-only: at most 7 findings with evidence; start from `tripcode ready <tripId>`).
 - 訂票清單：「補官方連結」「這個要預約嗎」「哪些要訂票」 → `booking-checklist` (writes `booking` on items with sourced official links, sale dates, deadlines; `tripcode bookings <tripId>`).
-- 午餐／晚餐還沒決定、「這餐吃什麼」 → `fill-meals` (where to look, never invents a restaurant).
+- 午餐／晚餐還沒決定、「這餐吃什麼」「推薦餐廳」「當地必吃」 → `fill-meals` (dish first: the city's local dishes from Wikivoyage with sources, then real places from `tripcode food near`; a map has no ratings, never invent a restaurant or a rating).
 - Prices, "哪裡訂比較便宜" → `find-prices` (compares only; never books or pays).
 - 「幫我盯價格」「降價通知」「開賣提醒」「好，買第二個」 → `booking-checklist` (sale-date reminders with `buy watch`; the user buys on the seller's page; never offer to pay or watch a price for a purchase).
 - 「同步到 Notion」「手機看行程」 → `sync-notion` (`tripcode export notion <tripId>`; first-time setup is in the skill).

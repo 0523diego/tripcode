@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Candidate, Item, Trip } from '../../core/types.ts';
 import type { Send } from '../api.ts';
 import { KIND_LABEL, STATUS_LABEL, dateLabel, findItem, type Selection } from '../model.ts';
+import { MealProof } from '../food/MealProof.tsx';
 import { Attachments } from './Attachments.tsx';
 
 interface Props {
@@ -201,6 +202,7 @@ export function DetailPanel({ tripId, trip, selection, dayIdx, send, onClose, em
         </p>
         {item.note && <p>{item.note}</p>}
         <ItemActions item={item} send={send} />
+        <MealProof tripId={tripId} item={item} />
         <div className="detail-section">
           <p className="detail-kicker">票券與文件</p>
           <Attachments tripId={tripId} item={item} send={send} />

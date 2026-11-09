@@ -16,7 +16,11 @@ import { profileText } from '../trips.ts';
 import type { TripEntry } from '../trips.ts';
 import { BOOKING_PROMPTS, relTime } from './booking-model.ts';
 import { BookingSection, MealSection, ReadinessCard } from './Bookings.tsx';
+import { TripSide } from './TripSide.tsx';
 import { useOffice } from './useOffice.ts';
+
+/** Below this width the 行程 and AI panels cannot sit side by side without squeezing the list. */
+const BOTH_PANELS_MIN = 1180;
 
 const money = (n: number, c: string) => `${c} ${Math.round(n * 100) / 100}`;
 
@@ -144,6 +148,7 @@ export function Office({ entry }: { entry: TripEntry }) {
   const title = trip?.title ?? tripId;
   const [now, setNow] = useState(() => new Date());
   const [agentOpen, setAgentOpen] = useState(false);
+  const [tripOpen, setTripOpen] = useState(false);
   const [watchOpen, setWatchOpen] = useState(false);
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
   useEffect(() => {
@@ -154,8 +159,14 @@ export function Office({ entry }: { entry: TripEntry }) {
     setMsg({ text, ok });
     setTimeout(() => setMsg(null), ok ? 3500 : 8000);
   };
-  const ask = (text: string) => {
+  // Two side panels need room: on a narrower screen opening one closes the other.
+  const roomForBoth = () => window.innerWidth >= BOTH_PANELS_MIN;
+  const openAgent = () => {
     setAgentOpen(true);
+    if (!roomForBoth()) setTripOpen(false);
+  };
+  const ask = (text: string) => {
+    openAgent();
     void sendMessage(text, { tripId, tripTitle: title });
   };
   const accept = async (date: string, code: string) => {
@@ -185,19 +196,30 @@ export function Office({ entry }: { entry: TripEntry }) {
           <span className="of-chip" data-state={summary.warn > 0 ? 'warn' : 'ok'}>
             {summary.text}
           </span>
-          <button type="button" className="btn" aria-pressed={agentOpen} onClick={() => setAgentOpen((o) => !o)}>
+          <button
+            type="button"
+            className="btn"
+            aria-pressed={tripOpen}
+            onClick={() => {
+              setTripOpen((o) => !o);
+              if (!tripOpen && !roomForBoth()) setAgentOpen(false);
+            }}
+          >
+            行程
+          </button>
+          <button type="button" className="btn" aria-pressed={agentOpen} onClick={() => (agentOpen ? setAgentOpen(false) : openAgent())}>
             AI 助手
           </button>
         </div>
       </header>
 
-      <div className={`of-body${agentOpen ? '' : ' no-side'}`}>
+      <div className={`of-body${agentOpen || tripOpen ? '' : ' no-side'}${tripOpen ? (agentOpen ? ' both' : ' trip-only') : ''}`}>
         <main className="of-main">
           {trip && (
             <>
               <ReadinessCard issues={issues} summary={summary.text} stages={stages} onAsk={ask} onAccept={(date, code) => void accept(date, code)} />
               <BookingSection list={list} trip={trip} tripId={tripId} file={file} today={today} say={say} onAsk={ask} />
-              <MealSection gaps={gaps} trip={trip} tripId={tripId} file={file} say={say} />
+              <MealSection gaps={gaps} trip={trip} tripId={tripId} file={file} say={say} onAsk={ask} />
             </>
           )}
           <details className="of-adv-wrap" onToggle={(e) => setWatchOpen((e.currentTarget as HTMLDetailsElement).open)}>
@@ -205,6 +227,8 @@ export function Office({ entry }: { entry: TripEntry }) {
             {watchOpen && <Watching entry={entry} say={say} />}
           </details>
         </main>
+
+        {tripOpen && trip && <TripSide trip={trip} onClose={() => setTripOpen(false)} />}
 
         {agentOpen && (
           <aside className="of-side">

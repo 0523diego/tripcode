@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import os from 'node:os';
+import path from 'node:path';
 import { test } from 'node:test';
 import { guardRequest } from '../../vite-plugin-tripcode.ts';
 import type { AgentProvider } from './provider.ts';
@@ -24,9 +27,10 @@ const provider: AgentProvider = {
 async function withServer(
   enabled: boolean,
   fn: (call: (method: string, path: string, body?: unknown, headers?: Record<string, string>) => Promise<{ status: number; body: any }>, base: string) => Promise<void>, // eslint-disable-line @typescript-eslint/no-explicit-any
+  options: { root?: string } = {},
 ) {
   const store = createSessionStore();
-  const routes = createAgentRoutes({ root: '/nonexistent-root', guard: (h, o) => guardRequest(h, { requireJson: o.requireJson }), enabled, provider, store });
+  const routes = createAgentRoutes({ root: options.root ?? '/nonexistent-root', guard: (h, o) => guardRequest(h, { requireJson: o.requireJson }), enabled, provider, store });
   const server = createServer((req, res) => {
     const prefix = '/__agent';
     req.url = (req.url ?? '/').slice(prefix.length) || '/';
@@ -170,4 +174,55 @@ test('events: new sessions and items are pushed over server-sent events', async 
     assert.ok(text.includes(`"id":"${(body as AgentSession).id}"`));
     await reader.cancel();
   });
+});
+
+
+const PNG_B64 = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]).toString('base64');
+
+test('pictures: upload, show it back, attach it to a message, and the agent is told the path', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tripcode-routes-'));
+  fs.mkdirSync(path.join(root, 'trips', 'rome'), { recursive: true });
+  await withServer(
+    true,
+    async (call, base) => {
+      const bad = await call('POST', '/uploads', { tripId: 'rome', data: Buffer.from('not an image').toString('base64') });
+      assert.equal(bad.status, 400);
+      const missing = await call('POST', '/uploads', { tripId: 'rome' });
+      assert.equal(missing.status, 400);
+
+      const up = await call('POST', '/uploads', { tripId: 'rome', data: PNG_B64 });
+      assert.equal(up.status, 200);
+      const ref: string = up.body.ref;
+      assert.match(ref, /^trips\/rome\/attachments\/img-/);
+
+      const shown = await fetch(`${base}/__agent/files?path=${encodeURIComponent(ref)}`);
+      assert.equal(shown.status, 200);
+      assert.equal(shown.headers.get('content-type'), 'image/png');
+      assert.equal(shown.headers.get('x-content-type-options'), 'nosniff');
+      assert.match(shown.headers.get('content-security-policy') ?? '', /sandbox/);
+      assert.equal((await fetch(`${base}/__agent/files?path=${encodeURIComponent('trips/rome/trip.ts')}`)).status, 404);
+      assert.equal((await fetch(`${base}/__agent/files?path=${encodeURIComponent('../../etc/passwd')}`)).status, 404);
+
+      const session = (await call('POST', '/sessions', { tripId: 'rome' })).body as AgentSession;
+      const invalid = await call('POST', `/sessions/${session.id}/messages`, { text: 'x', images: ['trips/rome/attachments/img-zz-00000000.png'] });
+      assert.equal(invalid.status, 400);
+      const tooMany = await call('POST', `/sessions/${session.id}/messages`, { text: 'x', images: [ref, ref, ref, ref, ref] });
+      assert.equal(tooMany.status, 400);
+      const notList = await call('POST', `/sessions/${session.id}/messages`, { text: 'x', images: ref });
+      assert.equal(notList.status, 400);
+      const noText = await call('POST', `/sessions/${session.id}/messages`, { text: ' ' });
+      assert.equal(noText.status, 400);
+
+      const sent = await call('POST', `/sessions/${session.id}/messages`, { text: '', images: [ref] });
+      assert.equal(sent.status, 202, 'a picture alone is a message');
+      let got: AgentSession | null = null;
+      for (let i = 0; i < 100 && !got?.items.some((x) => x.kind === 'assistant'); i++) {
+        await new Promise((r) => setTimeout(r, 10));
+        got = (await call('GET', `/sessions/${session.id}`)).body as AgentSession;
+      }
+      const user = got?.items.find((x) => x.kind === 'user');
+      assert.deepEqual(user?.kind === 'user' && user.images, [ref]);
+    },
+    { root },
+  );
 });

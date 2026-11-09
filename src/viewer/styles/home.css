@@ -178,11 +178,14 @@
   transition: opacity 140ms;
 }
 .trip-card-wrap:hover .cover-controls,
-.trip-card-wrap:focus-within .cover-controls {
+.trip-card-wrap:focus-within .cover-controls,
+.trip-card-wrap:hover .del-open,
+.trip-card-wrap:focus-within .del-open {
   opacity: 1;
 }
 @media (hover: none) {
-  .cover-controls {
+  .cover-controls,
+  .del-open {
     opacity: 1;
   }
 }
@@ -230,4 +233,74 @@
 .cover-toast[data-ok='false'] {
   border-color: var(--err);
   color: var(--err);
+}
+
+/* ---------- delete a trip: two steps ---------- */
+.del-open {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--border-2);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(6px);
+  color: var(--err);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 140ms, background 120ms;
+}
+.del-open:hover {
+  background: var(--err-soft);
+}
+.del-confirm {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px 20px;
+  border: 1px solid var(--err);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  backdrop-filter: blur(8px);
+}
+.del-confirm p {
+  margin: 0;
+}
+.del-confirm__q {
+  font-size: 15px;
+  font-weight: 600;
+}
+.del-confirm__what {
+  font-size: 13px;
+}
+.del-confirm__note {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.del-confirm__error {
+  color: var(--err);
+  font-size: 13px;
+}
+.del-confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+.del-confirm .btn.danger {
+  background: var(--err);
+  border-color: var(--err);
+  color: #000;
+  font-weight: 600;
+}
+.del-confirm .btn.danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--err) 85%, #fff);
 }

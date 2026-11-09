@@ -7,7 +7,7 @@
   top: var(--gap);
   right: var(--gap);
   bottom: var(--gap);
-  width: 340px;
+  width: var(--agent-w, 340px); /* dragged wider with the strip on its left edge (PanelResizer) */
   z-index: 12;
   display: flex;
   flex-direction: column;
@@ -547,7 +547,46 @@
   }
 }
 
+/* drag strip on the panel's left edge */
+.ag-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  width: 10px;
+  cursor: col-resize;
+  touch-action: none;
+}
+.ag-resizer::after {
+  content: '';
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 2px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--text);
+  opacity: 0;
+  transition: opacity 140ms;
+}
+.ag-resizer:hover::after,
+.ag-resizer:focus-visible::after,
+body.ag-resizing .ag-resizer::after {
+  opacity: 0.45;
+}
+.ag-resizer:focus-visible {
+  outline: none;
+}
+body.ag-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
 @media (max-width: 900px) {
+  .ag-resizer {
+    display: none; /* full screen on a phone: nothing to resize */
+  }
   .agent {
     position: fixed;
     inset: 8px;
@@ -570,4 +609,122 @@
   .agent-open {
     display: none !important;
   }
+}
+
+/* ---- pictures: waiting in the composer, on a sent message, and in replies ---- */
+.ag-attach-btn {
+  width: auto;
+  padding: 0 8px;
+  border: 1px solid var(--border-2);
+  font-size: 12px;
+}
+.ag-attach {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ag-thumb {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+.ag-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ag-thumb.loading img {
+  opacity: 0.45;
+}
+.ag-thumb.failed {
+  border-color: var(--err);
+}
+.ag-thumb-state {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 1px 0;
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  font-size: 10px;
+  text-align: center;
+}
+.ag-thumb-x {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.6);
+  color: #fff;
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+}
+.ag-pics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.ag-pics img {
+  display: block;
+  max-width: 100%;
+  max-height: 180px;
+  border-radius: 8px;
+  border: 1px solid var(--border-2);
+}
+.agent.dragging::after {
+  content: '放開，附上這張圖片';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--accent);
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--text);
+  font-size: 14px;
+  pointer-events: none;
+}
+.md-img {
+  display: block;
+  max-width: 100%;
+  margin: 4px 0;
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+}
+.md-img-remote {
+  font-size: 12px;
+  color: var(--muted);
+}
+.md-table {
+  max-width: 100%;
+  margin: 0 0 8px;
+  overflow-x: auto;
+}
+.md-table table {
+  border-collapse: collapse;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.md-table th,
+.md-table td {
+  padding: 4px 8px;
+  border: 1px solid var(--border-2);
+  text-align: left;
+  vertical-align: top;
+}
+.md-table th {
+  background: var(--surface-3);
+  font-weight: 600;
+  white-space: nowrap;
 }

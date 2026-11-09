@@ -2,6 +2,7 @@ export * from './types.ts';
 export * from './time.ts';
 export * from './check.ts';
 export * from './links.ts';
+export * from './lodging.ts';
 export * from './ics.ts';
 export * from './source-edit.ts';
 export * from './optimize.ts';

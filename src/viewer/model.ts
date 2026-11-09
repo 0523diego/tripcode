@@ -1,5 +1,7 @@
 // Pure helpers shared by viewer components: selection, colors, map data, inbox parsing.
 import type { Candidate, Day, Item, Trip } from '../core/types.ts';
+import { lodgingByDay, type Stay } from '../core/lodging.ts';
+import { dayColorSlots, dayColorVar } from '../core/day-colors.ts';
 import type { InboxFile } from './trips.ts';
 
 export type Selection =
@@ -88,9 +90,18 @@ export function buildMapData(trip: Trip, dayIdx: number | null): MapData {
   const pins: MapPin[] = [];
   const routes: MapRoute[] = [];
   let unlocated = 0;
+  const slots = dayColorSlots(trip);
+  const lodging = lodgingByDay(trip);
+  /** Hotels a day starts or ends at, drawn as "宿" pins unless the hotel's own check-in item already has a pin. */
+  const stays: { stay: Stay; color: string }[] = [];
+  const stayPoint = (stay: Stay | undefined, color: string) => {
+    if (!stay || !hasLoc(stay.item) || !stay.item.loc) return [];
+    stays.push({ stay, color });
+    return [{ lat: stay.item.loc.lat, lng: stay.item.loc.lng }];
+  };
   trip.days.forEach((day, di) => {
     if (dayIdx !== null && di !== dayIdx) return;
-    const color = dayVar(di);
+    const color = dayColorVar(slots[di]!);
     const pts: { lat: number; lng: number }[] = [];
     let n = 0;
     for (const it of day.items) {
@@ -112,15 +123,34 @@ export function buildMapData(trip: Trip, dayIdx: number | null): MapData {
         style: 'day',
       });
     }
-    if (pts.length > 1) routes.push({ key: day.date, color, points: pts });
+    // Every day starts and ends at where you sleep, even on the days between a hotel's check-in and check-out.
+    const lodge = lodging[di];
+    const route = [...stayPoint(lodge?.start, color), ...pts, ...stayPoint(lodge?.end, color)];
+    if (route.length > 1) routes.push({ key: day.date, color, points: route });
   });
+  const pinned = new Set(pins.map((p) => p.key));
+  for (const { stay, color } of stays) {
+    const key = `item:${stay.item.id}`;
+    if (pinned.has(key) || !stay.item.loc) continue;
+    pinned.add(key);
+    pins.push({
+      key,
+      sel: { type: 'item', id: stay.item.id },
+      lat: stay.item.loc.lat,
+      lng: stay.item.loc.lng,
+      label: '宿',
+      title: stay.item.title,
+      color,
+      style: 'day',
+    });
+  }
   for (const c of trip.candidates) {
     if (!hasLoc(c) || !c.loc) continue;
     const dayOk = c.day !== undefined && c.day >= 1 && c.day <= trip.days.length;
     const styleBy: Record<Candidate['status'], [PinStyle, string, string]> = {
       unconfirmed: ['unconfirmed', '?', '--muted'],
       discuss: ['discuss', '…', '--discuss'],
-      accepted: ['accepted', '✓', dayOk ? dayVar((c.day ?? 1) - 1) : '--accept'],
+      accepted: ['accepted', '✓', dayOk ? dayColorVar(slots[(c.day ?? 1) - 1]!) : '--accept'],
       rejected: ['rejected', '×', '--muted'],
     };
     const [style, label, color] = styleBy[c.status];

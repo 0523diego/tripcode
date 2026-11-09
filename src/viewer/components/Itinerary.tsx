@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Candidate, Day, Item, Trip } from '../../core/types.ts';
-import { dayMapsLinks, fromMinutes } from '../../core/index.ts';
+import { dayMapsLinks, fromMinutes, lodgingByDay, type DayLodging } from '../../core/index.ts';
 import { MODE_LABEL, duration, safeMinutes, transitTime } from '../travel.ts';
-import { KIND_LABEL, STATUS_LABEL, dateLabel, dayVar, hasLoc, selKey, type Selection } from '../model.ts';
+import { KIND_LABEL, STATUS_LABEL, dateLabel, hasLoc, selKey, type Selection } from '../model.ts';
+import { dayColorSlots, dayColorVar, sameStayDates } from '../../core/day-colors.ts';
+import { DayColorPicker } from './DayColorPicker.tsx';
 import { InlineEdit } from './InlineEdit.tsx';
 
 /** Fields that can be edited in place (double-click, or F2 on the focused row). */
@@ -23,9 +25,13 @@ interface Props {
   /** Save a title or start time edited in the list. Omitted = the list is read-only. */
   onEditField?: (itemId: string, field: InlineField, value: string) => void;
   /** Move an item to `toDate`, before `beforeId` (null = end of that day). */
-  onMove: (itemId: string, toDate: string, beforeId: string | null) => void;
+  onMove?: (itemId: string, toDate: string, beforeId: string | null) => void;
   /** Turn a candidate into an item of `toDate`, before `beforeId` (null = end). */
-  onSchedule: (candidateId: string, toDate: string, beforeId: string | null) => void;
+  onSchedule?: (candidateId: string, toDate: string, beforeId: string | null) => void;
+  /** Just look: no drag handles, no inline editing, no 待排入 rows. Used by the booking page's 行程 panel. */
+  readOnly?: boolean;
+  /** Give these days one of the 8 palette colors (null = back to automatic). Omitted = the color dot is not clickable. */
+  onColor?: (dates: string[], color: number | null) => void;
 }
 
 interface Drag {
@@ -48,9 +54,11 @@ interface HandleApi {
   start: (e: React.PointerEvent, kind: Drag['kind'], id: string, title: string, date: string) => void;
   nudge: (id: string, date: string, dir: -1 | 1) => void;
   draggingId: string | null;
+  readOnly?: boolean;
 }
 
 function Handle({ api, kind, id, title, date }: { api: HandleApi; kind: Drag['kind']; id: string; title: string; date: string }) {
+  if (api.readOnly) return null;
   return (
     <button
       type="button"
@@ -106,9 +114,34 @@ function subline(it: Item): string[] {
   return parts;
 }
 
+/** A day's opening or closing "at the hotel" row. It is derived, so it has no drag handle and cannot be edited here. */
+function StayRow({ stay, edge, onSelect }: { stay: NonNullable<DayLodging['start']>; edge: 'start' | 'end'; onSelect: (s: Selection) => void }) {
+  const { item } = stay;
+  return (
+    <li className={`stay-row ${edge}`}>
+      <button type="button" className="it untimed stay" onClick={() => onSelect({ type: 'item', id: item.id })}>
+        <time />
+        <span className="node" />
+        <span className="it-main">
+          <span className="it-title">{edge === 'start' ? `從 ${item.title} 出發` : `回到 ${item.title}`}</span>
+          <span className="it-sub">
+            住宿 · {edge === 'start' ? '昨晚住這裡' : '今晚住這裡'}
+            {!hasLoc(item) && <em className="tag">無座標</em>}
+          </span>
+        </span>
+      </button>
+    </li>
+  );
+}
+
 function DayBlock({
   day,
   dayIdx,
+  lodging,
+  slot,
+  sameStay,
+  anyCustom,
+  onColor,
   selection,
   onSelect,
   pending,
@@ -118,6 +151,12 @@ function DayBlock({
 }: {
   day: Day;
   dayIdx: number;
+  lodging: DayLodging;
+  /** Palette slot (1–8) the day shows: its hotel's color, or its own. */
+  slot: number;
+  sameStay: string[];
+  anyCustom: boolean;
+  onColor?: Props['onColor'];
   selection: Selection | null;
   onSelect: (s: Selection) => void;
   pending: Candidate[];
@@ -127,11 +166,11 @@ function DayBlock({
 }) {
   const links = useMemo(() => {
     try {
-      return dayMapsLinks(day);
+      return dayMapsLinks(day, { start: lodging.start?.item, end: lodging.end?.item });
     } catch {
       return [];
     }
-  }, [day]);
+  }, [day, lodging]);
   const selected = selKey(selection);
   const rows: React.ReactNode[] = [];
   const anyTime = day.items.some((it) => timeOf(it) !== '' || safeMinutes(it.end) !== null);
@@ -139,6 +178,8 @@ function DayBlock({
   let prevWasTransit = false;
   /** End of the latest timed item, only when it states an explicit end (a bare start says nothing about duration). */
   let tailFrom: number | null = null;
+
+  if (lodging.start) rows.push(<StayRow key="stay-start" stay={lodging.start} edge="start" onSelect={onSelect} />);
 
   for (const [idx, it] of day.items.entries()) {
     const start = safeMinutes(it.start);
@@ -282,6 +323,8 @@ function DayBlock({
     }
   }
 
+  if (lodging.end) rows.push(<StayRow key="stay-end" stay={lodging.end} edge="end" onSelect={onSelect} />);
+
   for (const c of pending) {
     const k = `candidate:${c.id}`;
     rows.push(
@@ -302,11 +345,15 @@ function DayBlock({
   }
 
   return (
-    <section className={`day-block${anyTime ? '' : ' notimes'}`} data-date={day.date} style={{ ['--day-color' as string]: `var(${dayVar(dayIdx)})` }}>
+    <section className={`day-block${anyTime ? '' : ' notimes'}`} data-date={day.date} style={{ ['--day-color' as string]: `var(${dayColorVar(slot)})` }}>
       {target && target.date === day.date && <div className="drop-line" style={{ top: target.top }} aria-hidden="true" />}
       <header className="day-head">
         <div className="day-kicker">
-          <span className="swatch" />
+          {onColor ? (
+            <DayColorPicker date={day.date} slot={slot} custom={day.color !== undefined} sameStay={sameStay} anyCustom={anyCustom} onPick={onColor} />
+          ) : (
+            <span className="swatch" />
+          )}
           DAY {dayIdx + 1} · {dateLabel(day.date)}
           {day.weather === 'clear' && <em className="tag weather">需好天氣</em>}
         </div>
@@ -327,7 +374,7 @@ function DayBlock({
   );
 }
 
-export function Itinerary({ trip, dayIdx, selection, onSelect, onEditField, onMove, onSchedule }: Props) {
+export function Itinerary({ trip, dayIdx, selection, onSelect, onEditField, onMove, onSchedule, onColor, readOnly }: Props) {
   const root = useRef<HTMLDivElement | null>(null);
   const key = selKey(selection);
   const [editing, setEditing] = useState<EditApi['editing']>(null);
@@ -399,13 +446,13 @@ export function Itinerary({ trip, dayIdx, selection, onSelect, onEditField, onMo
       setDrag(null);
       setTarget(null);
       if (!t || !t.date) return;
-      if (drag.kind === 'cand') return onSchedule(drag.id, t.date, t.beforeId);
+      if (drag.kind === 'cand') return onSchedule?.(drag.id, t.date, t.beforeId);
       // Skip no-op drops (same day, same neighbour).
       const day = trip.days.find((d) => d.date === drag.date);
       const idx = day?.items.findIndex((it) => it.id === drag.id) ?? -1;
       const nextId = day && idx >= 0 ? (day.items[idx + 1]?.id ?? null) : undefined;
       if (t.date === drag.date && t.beforeId === nextId) return;
-      onMove(drag.id, t.date, t.beforeId);
+      onMove?.(drag.id, t.date, t.beforeId);
     };
     const cancel = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -426,6 +473,7 @@ export function Itinerary({ trip, dayIdx, selection, onSelect, onEditField, onMo
 
   const api: HandleApi = {
     draggingId: drag?.id ?? null,
+    readOnly,
     start: (e, kind, id, title, date) => {
       if (e.button !== 0) return;
       e.preventDefault();
@@ -436,12 +484,14 @@ export function Itinerary({ trip, dayIdx, selection, onSelect, onEditField, onMo
       const day = trip.days.find((d) => d.date === date);
       if (!day) return;
       const i = day.items.findIndex((it) => it.id === id);
-      if (dir === -1 && i > 0) onMove(id, date, day.items[i - 1]!.id);
-      if (dir === 1 && i >= 0 && i < day.items.length - 1) onMove(id, date, day.items[i + 2]?.id ?? null);
+      if (dir === -1 && i > 0) onMove?.(id, date, day.items[i - 1]!.id);
+      if (dir === 1 && i >= 0 && i < day.items.length - 1) onMove?.(id, date, day.items[i + 2]?.id ?? null);
     },
   };
 
-  const pendingFor = (i: number) => trip.candidates.filter((c) => c.status === 'accepted' && c.day === i + 1);
+  const lodging = useMemo(() => lodgingByDay(trip), [trip]);
+  const slots = useMemo(() => dayColorSlots(trip), [trip]);
+  const pendingFor = (i: number) => (readOnly ? [] : trip.candidates).filter((c) => c.status === 'accepted' && c.day === i + 1);
 
   return (
     <div ref={root} className={drag ? 'is-dragging' : undefined}>
@@ -451,6 +501,11 @@ export function Itinerary({ trip, dayIdx, selection, onSelect, onEditField, onMo
             key={day.date}
             day={day}
             dayIdx={i}
+            lodging={lodging[i] ?? {}}
+            slot={slots[i]!}
+            sameStay={sameStayDates(trip, day.date)}
+            anyCustom={trip.days.some((d) => d.color !== undefined && sameStayDates(trip, day.date).includes(d.date))}
+            onColor={onColor}
             selection={selection}
             onSelect={onSelect}
             pending={pendingFor(i)}

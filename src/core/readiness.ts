@@ -105,6 +105,11 @@ export function readiness(trip: Trip, opts: { now: Date; brief?: string; profile
     out.push({ level: 'info', code: 'meal-gap', date, message: `${md(date)} ${names.join('、')}還沒決定` });
   }
 
+  // A restaurant chosen from the food guide was seen on a map some time ago: places close and hours change, so one merged line
+  // before leaving, and one for places chosen with no proof at all.
+  const stale = upcoming.flatMap((d) => d.items.filter((it) => it.kind === 'meal' && it.checks?.exists && daysBetween(it.checks.exists.fetchedAt.slice(0, 10), today) > STALE_DAYS).map((it) => it.title));
+  if (stale.length > 0) out.push({ level: 'info', code: 'meal-check-stale', message: `${stale.slice(0, 4).join('、')}${stale.length > 4 ? '…' : ''}：餐廳是 ${STALE_DAYS} 天前在地圖上確認的，出發前再看一次是否還在營業` });
+
   // Official purchase pages nobody has confirmed. Merged into one line; once someone has researched an item (a booking
   // field with a known `need`), it stops counting even if no page was found: 「找不到」 is an answer, silence is not.
   const unlinked = items.filter((t) => t.status === 'todo' && t.basis !== 'gap' && t.links[0]?.urlKind === 'search' && !(t.basis === 'explicit' && t.need !== 'unknown'));

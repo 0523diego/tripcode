@@ -13,6 +13,8 @@ import type { MealGap } from '../../core/meals.ts';
 import type { ReadinessIssue } from '../../core/readiness.ts';
 import type { Trip } from '../../core/types.ts';
 import { post } from '../api.ts';
+import { FoodBoard } from '../food/FoodBoard.tsx';
+import { MealDrawer } from '../food/MealDrawer.tsx';
 import { FILTER_LABEL, NEED_LABEL, URGENCY_LABEL, VIA_OPTIONS, anchorChoices, counts, countdowns, filterTodos, groupByPlace, insertionPoint, placeOf, shortDate, weekdayZh } from './booking-model.ts';
 import type { Filter, Place, PlaceGroup } from './booking-model.ts';
 
@@ -338,7 +340,7 @@ export function BookingSection({ list, trip, tripId, file, today, say, onAsk }: 
 
 // ---------- 吃飯空檔 ----------
 
-function GapCard({ gap, trip, tripId, file, say, city }: { gap: MealGap; trip: Trip; tripId: string; file: string; say: Say; city?: string }) {
+function GapCard({ gap, trip, tripId, file, say, city, onFind }: { gap: MealGap; trip: Trip; tripId: string; file: string; say: Say; city?: string; onFind: () => void }) {
   const choices = anchorChoices(gap);
   const [anchor, setAnchor] = useState(gap.defaultAnchor);
   const [open, setOpen] = useState(false);
@@ -388,8 +390,11 @@ function GapCard({ gap, trip, tripId, file, say, city }: { gap: MealGap; trip: T
             </select>
           </label>
           <div className="bk-links">
-            <a className="of-link main" href={restaurantsNearUrl(picked!.title, city)} target="_blank" rel="noopener noreferrer">
-              在 Google 地圖找附近餐廳 ↗
+            <button type="button" className="btn primary" onClick={onFind}>
+              找吃的 →
+            </button>
+            <a className="of-link" href={restaurantsNearUrl(picked!.title, city)} target="_blank" rel="noopener noreferrer">
+              或直接在 Google 地圖找 ↗
             </a>
           </div>
         </>
@@ -423,10 +428,14 @@ function GapCard({ gap, trip, tripId, file, say, city }: { gap: MealGap; trip: T
   );
 }
 
-export function MealSection({ gaps, trip, tripId, file, say, city }: { gaps: MealGap[]; trip: Trip; tripId: string; file: string; say: Say; city?: string }) {
+export function MealSection({ gaps, trip, tripId, file, say, city, onAsk }: { gaps: MealGap[]; trip: Trip; tripId: string; file: string; say: Say; city?: string; onAsk: (text: string) => void }) {
   const place: (date: string) => Place = placeOf(trip);
+  const [finding, setFinding] = useState<string | null>(null);
+  const open = gaps.find((g) => `${g.date}-${g.slot}` === finding);
   const groups = groupByPlace(gaps, place);
   return (
+    <>
+    <FoodBoard tripId={tripId} canUseFor={(date, slot) => gaps.some((g) => g.date === date && g.slot === slot)} onUseFor={(date, slot) => setFinding(`${date}-${slot}`)} />
     <section className="of-section" aria-label="吃飯空檔">
       <header className="of-section-head">
         <h2>吃飯空檔</h2>
@@ -440,13 +449,15 @@ export function MealSection({ gaps, trip, tripId, file, say, city }: { gaps: Mea
             <GroupHead g={g} count={g.items.length} unit="餐" />
             <ul className="bk-grid">
               {g.items.map((m) => (
-                <GapCard key={`${m.date}-${m.slot}`} gap={m} trip={trip} tripId={tripId} file={file} say={say} city={city} />
+                <GapCard key={`${m.date}-${m.slot}`} gap={m} trip={trip} tripId={tripId} file={file} say={say} city={city} onFind={() => setFinding(`${m.date}-${m.slot}`)} />
               ))}
             </ul>
           </div>
         ))
       )}
-      <p className="of-note muted bk-hint">排序與評分要用 Google 的資料，之後會加。現在先用地圖連結找，挑好貼回來。</p>
+      <p className="of-note muted bk-hint">「找吃的」先決定想吃哪道在地菜，再列出附近真的存在、那個時段有開的店（OpenStreetMap，沒有評分；評分請在 Google 地圖看）。也可以自己在 Google 地圖挑好貼回來。</p>
+      {open && <MealDrawer key={finding} gap={open} trip={trip} tripId={tripId} file={file} say={say} onClose={() => setFinding(null)} onAsk={onAsk} />}
     </section>
+    </>
   );
 }

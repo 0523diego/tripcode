@@ -1,10 +1,12 @@
-// Tiny hash router: "#/" is the home page, "#/trip/<id>" opens a trip, "#/trip/<id>/office" its 訂票清單, "#/idea/<id>" step 0 (找方向). Hash routes work with the
+// Tiny hash router: "#/" is the home page, "#/trip/<id>" opens a trip, "#/trip/<id>/office" its 訂票清單, "#/trip/<id>/print?..." its print page, "#/idea/<id>" step 0 (找方向). Hash routes work with the
 // dev server, `vite build` output and file:// alike, and the browser back button returns home.
 import { useEffect, useState } from 'react';
 
-export type Route = { name: 'home' } | { name: 'trip'; id: string } | { name: 'office'; id: string } | { name: 'idea'; id: string };
+export type Route = { name: 'home' } | { name: 'trip'; id: string } | { name: 'office'; id: string } | { name: 'print'; id: string; query: string } | { name: 'idea'; id: string };
 
 export function parseRoute(hash: string): Route {
+  const print = /^#\/trip\/([a-z0-9-]+)\/print\/?(?:\?(.*))?$/.exec(hash);
+  if (print) return { name: 'print', id: print[1]!, query: print[2] ?? '' };
   const office = /^#\/trip\/([a-z0-9-]+)\/office\/?$/.exec(hash);
   if (office) return { name: 'office', id: office[1]! };
   const idea = /^#\/idea\/([a-z0-9-]+)\/?$/.exec(hash);

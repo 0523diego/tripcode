@@ -68,11 +68,13 @@ function buildUrl(stops: Stop[], travelmode: TravelMode): string {
 /**
  * Google Maps directions URLs for one day, in item order. Days with more than 10 stops are split into
  * consecutive links; each link starts where the previous one ended. Fewer than 2 stops → [].
+ * `start` / `end` are the hotels the day begins and ends at (see lodgingByDay); they bracket the item list.
  */
-export function dayMapsLinks(day: Day, opts: { travelmode?: TravelMode } = {}): string[] {
+export function dayMapsLinks(day: Day, opts: { travelmode?: TravelMode; start?: Item; end?: Item } = {}): string[] {
   const travelmode = opts.travelmode ?? 'transit';
   const stops: Stop[] = [];
-  for (const item of day.items) {
+  const items = [...(opts.start ? [opts.start] : []), ...day.items, ...(opts.end ? [opts.end] : [])];
+  for (const item of items) {
     const stop = toStop(item);
     if (!stop) continue;
     if (stops[stops.length - 1]?.key === stop.key) continue; // staying put is not a leg

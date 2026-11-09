@@ -1,14 +1,18 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Trip } from '../../core/types.ts';
 import { post } from '../api.ts';
 import { removeCover, setCover } from '../cover.ts';
-import { dayVar, lockedItems, parseInbox } from '../model.ts';
+import { deleteTrip, dropConversations } from '../trash.ts';
+import { dayColorSlots, dayColorVar } from '../../core/day-colors.ts';
+import { lockedItems, parseInbox } from '../model.ts';
 import { go } from '../route.ts';
 import { STEP_TITLE } from '../../core/idea.ts';
 import { createIdeaFile, useIdeaList } from '../idea/idea-store.ts';
 import type { IdeaListEntry } from '../idea/idea-store.ts';
 import { newIdeaId } from '../idea/idea-view.ts';
 import type { TripEntry } from '../trips.ts';
+
+const DELETED_TOAST = 'tripcode.home.deleted-toast';
 
 function shortDate(date: string): string {
   const [, m, d] = date.split('-').map(Number);
@@ -20,6 +24,7 @@ function Sketch({ trip }: { trip: Trip }) {
   const W = 320;
   const H = 150;
   const days = trip.days.map((d) => d.items.filter((it) => it.kind !== 'transit' && it.loc).map((it) => it.loc!));
+  const slots = dayColorSlots(trip);
   const all = days.flat();
   if (all.length === 0) {
     return (
@@ -45,7 +50,7 @@ function Sketch({ trip }: { trip: Trip }) {
             key={i}
             points={pts.map((p) => `${x(p.lng)},${y(p.lat)}`).join(' ')}
             fill="none"
-            stroke={`var(${dayVar(i)})`}
+            stroke={`var(${dayColorVar(slots[i]!)})`}
             strokeWidth={1.75}
             strokeLinejoin="round"
             opacity={0.85}
@@ -53,7 +58,7 @@ function Sketch({ trip }: { trip: Trip }) {
         ) : null,
       )}
       {days.map((pts, i) =>
-        pts.map((p, j) => <circle key={`${i}-${j}`} cx={x(p.lng)} cy={y(p.lat)} r={2.6} fill={`var(${dayVar(i)})`} />),
+        pts.map((p, j) => <circle key={`${i}-${j}`} cx={x(p.lng)} cy={y(p.lat)} r={2.6} fill={`var(${dayColorVar(slots[i]!)})`} />),
       )}
     </svg>
   );
@@ -91,7 +96,72 @@ function CoverControls({ entry, onChanged }: { entry: TripEntry; onChanged: (msg
   );
 }
 
-function TripCard({ entry, bust, onCover }: { entry: TripEntry; bust: number; onCover: (msg: string, ok: boolean) => void }) {
+/**
+ * 刪除 with two steps: the small button only opens a confirmation that covers the card (focus starts on 取消), and only
+ * 確定刪除 deletes. The folder is moved to .tripcode-trash/, not erased, and the message says so.
+ */
+function DeleteControl({ id, title, detail, onDeleted }: { id: string; title: string; detail: string; onDeleted: (id: string, title: string) => void }) {
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const cancel = useRef<HTMLButtonElement>(null);
+  const close = () => {
+    setAsking(false);
+    setError(null);
+  };
+  const confirm = async () => {
+    setBusy(true);
+    setError(null);
+    const r = await deleteTrip(id);
+    setBusy(false);
+    if (!r.ok) return setError(r.error ?? '刪除失敗');
+    setAsking(false);
+    onDeleted(id, title);
+  };
+  return (
+    <>
+      <button type="button" className="del-open" onClick={() => setAsking(true)} aria-label={`刪除「${title}」`}>
+        刪除
+      </button>
+      {asking && (
+        <div
+          className="del-confirm"
+          role="alertdialog"
+          aria-modal="true"
+          aria-label={`確定要刪除「${title}」？`}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' && !busy) close();
+          }}
+          ref={(el) => {
+            if (el && !el.dataset.focused) {
+              el.dataset.focused = '1';
+              cancel.current?.focus();
+            }
+          }}
+        >
+          <p className="del-confirm__q">確定要刪除「{title}」？</p>
+          <p className="del-confirm__what">{detail}</p>
+          <p className="del-confirm__note muted">整個資料夾會移到專案的 .tripcode-trash/，行程不會再出現在這裡。要救回來，把它搬回 trips/ 就好。</p>
+          {error && (
+            <p className="del-confirm__error" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="del-confirm__actions">
+            <button type="button" className="btn" ref={cancel} onClick={close} disabled={busy}>
+              取消
+            </button>
+            <button type="button" className="btn danger" onClick={() => void confirm()} disabled={busy}>
+              {busy ? '刪除中…' : '確定刪除'}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function TripCard({ entry, bust, onCover, onDeleted }: { entry: TripEntry; bust: number; onCover: (msg: string, ok: boolean) => void; onDeleted: (id: string, title: string) => void }) {
   const trip = entry.files[0]!.trip;
   const locked = lockedItems(trip).length;
   const pending = entry.inbox.map(parseInbox).filter((n) => n.status === 'pending').length;
@@ -122,6 +192,7 @@ function TripCard({ entry, bust, onCover }: { entry: TripEntry; bust: number; on
       onDrop={(e) => void drop(e)}
     >
       <CoverControls entry={entry} onChanged={onCover} />
+      <DeleteControl id={entry.id} title={trip.title} detail={`${trip.days.length} 天行程、已確定 ${locked}、候選 ${open}。`} onDeleted={onDeleted} />
       <a className="trip-card card" href={`#/trip/${entry.id}`}>
         {entry.cover ? <img className="cover-img" src={`${entry.cover}${entry.cover.includes('?') ? '&' : '?'}v=${bust}`} alt="" draggable={false} /> : <Sketch trip={trip} />}
         <div className="trip-card-body">
@@ -244,10 +315,11 @@ function NewTripForm({ onCancel }: { onCancel: () => void }) {
 }
 
 /** An idea in progress (no trip yet): a dark, space-style card that opens the idea page. */
-function IdeaCard({ entry }: { entry: IdeaListEntry }) {
+function IdeaCard({ entry, onDeleted }: { entry: IdeaListEntry; onDeleted: (id: string, title: string) => void }) {
   const chips = entry.summary.slice(0, 6);
   return (
     <li className="trip-card-wrap">
+      <DeleteControl id={entry.id} title="新的旅程（構想中）" detail="還沒建成行程的想法，和你回答過的問題。" onDeleted={onDeleted} />
       <a className="trip-card idea-home-card" href={`#/idea/${entry.id}`}>
         <div className="idea-home-card__body">
           <span className="idea-home-card__badge">構想中</span>
@@ -279,7 +351,32 @@ export function Home({ trips }: { trips: TripEntry[] }) {
     setToast({ text, ok });
     setTimeout(() => setToast(null), ok ? 3000 : 7000);
   };
-  const ideas = useIdeaList();
+  // Hidden at once when deleted; the folder move also makes the dev server refresh the page.
+  const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
+  const onDeleted = (id: string, title: string) => {
+    setGone((g) => new Set(g).add(id));
+    const text = `「${title}」已刪除（在 .tripcode-trash/）`;
+    onCover(text, true);
+    // Deleting a trip folder makes the dev server reload the page, which would wipe the toast: show it again after the reload.
+    try {
+      sessionStorage.setItem(DELETED_TOAST, text);
+    } catch {
+      /* private mode: the card disappearing is the feedback */
+    }
+    void dropConversations(id);
+  };
+  useEffect(() => {
+    try {
+      const text = sessionStorage.getItem(DELETED_TOAST);
+      if (!text) return;
+      sessionStorage.removeItem(DELETED_TOAST);
+      setToast({ text, ok: true });
+      setTimeout(() => setToast(null), 4000); // not cleared on unmount: strict mode would cancel it before it fires
+    } catch {
+      /* storage unavailable */
+    }
+  }, []);
+  const ideas = useIdeaList().filter((i) => !gone.has(i.id));
   // Starting an idea needs the dev server (it writes trips/<id>/idea.json); a static build keeps the plain form.
   const canIdea = import.meta.env.DEV;
   const [starting, setStarting] = useState(false);
@@ -295,9 +392,9 @@ export function Home({ trips }: { trips: TripEntry[] }) {
   const sorted = useMemo(
     () =>
       trips
-        .filter((t) => !t.fixture && t.files.length > 0)
+        .filter((t) => !t.fixture && t.files.length > 0 && !gone.has(t.id))
         .sort((a, b) => a.files[0]!.trip.start.localeCompare(b.files[0]!.trip.start)),
-    [trips],
+    [trips, gone],
   );
   return (
     <main className="home">
@@ -327,10 +424,10 @@ export function Home({ trips }: { trips: TripEntry[] }) {
       ) : (
         <ul className="trip-grid">
           {ideas.map((i) => (
-            <IdeaCard key={i.id} entry={i} />
+            <IdeaCard key={i.id} entry={i} onDeleted={onDeleted} />
           ))}
           {sorted.map((t) => (
-            <TripCard key={t.id} entry={t} bust={bust} onCover={onCover} />
+            <TripCard key={t.id} entry={t} bust={bust} onCover={onCover} onDeleted={onDeleted} />
           ))}
         </ul>
       )}

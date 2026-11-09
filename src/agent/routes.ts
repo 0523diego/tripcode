@@ -8,6 +8,8 @@
 // Only this machine may use it: the agent can edit files and run commands as the user.
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http';
 import path from 'node:path';
+import fs from 'node:fs';
+import { isUploadRef, MAX_IMAGE_BYTES, MAX_IMAGES_PER_MESSAGE, saveUpload, servedImage } from './attachments.ts';
 import { createClaudeProvider } from './claude.ts';
 import { commandVersion, findOnPath, resolveWorkspacePackage } from './detect.ts';
 import { installSdk } from './install.ts';
@@ -19,6 +21,8 @@ import { isAgentEffort } from './types.ts';
 import type { AgentStatus, AgentStreamEvent, AgentTurnContext, RespondPayload } from './types.ts';
 
 const BODY_LIMIT = 1024 * 1024;
+// A base64 image inside JSON is a third bigger than the file.
+const UPLOAD_BODY_LIMIT = Math.ceil((MAX_IMAGE_BYTES * 4) / 3) + 4096;
 const TRIP_ID_RE = /^[a-z0-9-]+$/;
 const FILE_RE = /^[a-z0-9-]+\.ts$/;
 const MODEL_RE = /^[\w.:[\]-]{1,80}$/;
@@ -70,7 +74,7 @@ export function parseRespond(raw: unknown): RespondPayload | null {
 
 class BodyTooLarge extends Error {}
 
-function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
+function readJson(req: IncomingMessage, limit = BODY_LIMIT): Promise<Record<string, unknown>> {
   return new Promise((resolve, reject) => {
     let size = 0;
     let tooBig = false;
@@ -78,7 +82,7 @@ function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
     req.on('data', (c: Buffer) => {
       if (tooBig) return;
       size += c.length;
-      if (size > BODY_LIMIT) {
+      if (size > limit) {
         tooBig = true;
         chunks.length = 0;
         return;
@@ -191,6 +195,29 @@ export function createAgentRoutes(opts: {
         const version = await install;
         return json(res, 200, { ok: true, version });
       }
+      if (method === 'POST' && url.pathname === '/uploads') {
+        const body = await readJson(req, UPLOAD_BODY_LIMIT);
+        const tripId = typeof body.tripId === 'string' && TRIP_ID_RE.test(body.tripId) ? body.tripId : null;
+        if (typeof body.data !== 'string' || !body.data) return json(res, 400, { error: '缺少圖片內容' });
+        try {
+          return json(res, 200, { ref: saveUpload(root, tripId, Buffer.from(body.data, 'base64')) });
+        } catch (err) {
+          return json(res, 400, { error: err instanceof Error ? err.message : String(err) });
+        }
+      }
+      if (method === 'GET' && url.pathname === '/files') {
+        const image = servedImage(root, url.searchParams.get('path'));
+        if (!image) return json(res, 404, { error: '找不到圖片' });
+        // An SVG the agent drew can carry script: it is only ever shown through <img>, and opened on its own it is sandboxed.
+        res.writeHead(200, {
+          'content-type': image.mime,
+          'cache-control': 'private, max-age=60',
+          'x-content-type-options': 'nosniff',
+          'content-security-policy': "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:",
+        });
+        res.end(fs.readFileSync(image.file));
+        return;
+      }
       if (method === 'GET' && url.pathname === '/sessions') {
         res.setHeader('cache-control', 'no-store');
         return json(res, 200, { sessions: store.list() });
@@ -216,7 +243,14 @@ export function createAgentRoutes(opts: {
         }
         if (method === 'POST' && action === 'messages') {
           const body = await readJson(req);
-          if (typeof body.text !== 'string' || !body.text.trim()) return json(res, 400, { error: '缺少訊息內容' });
+          let images: string[] | undefined;
+          if (body.images !== undefined) {
+            if (!Array.isArray(body.images) || body.images.length > MAX_IMAGES_PER_MESSAGE || !body.images.every((p) => isUploadRef(root, p))) {
+              return json(res, 400, { error: '附加的圖片無效或已不存在' });
+            }
+            images = body.images as string[];
+          }
+          if (typeof body.text !== 'string' || (!body.text.trim() && !(images && images.length > 0))) return json(res, 400, { error: '缺少訊息內容' });
           if (runner.isRunning(id)) return json(res, 409, { error: '這個對話正在執行' });
           if (body.edit !== undefined && !session.items.some((i) => i.id === body.edit && i.kind === 'user')) {
             return json(res, 400, { error: '找不到那則訊息' });
@@ -228,6 +262,7 @@ export function createAgentRoutes(opts: {
             model: parseModel(body.model),
             effort: isAgentEffort(body.effort) ? body.effort : null,
             edit: typeof body.edit === 'string' ? body.edit : undefined,
+            images,
           });
           return json(res, 202, { ok: true });
         }

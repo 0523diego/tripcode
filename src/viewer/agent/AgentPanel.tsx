@@ -18,7 +18,11 @@ import {
   useAgent,
 } from './agent-store.ts';
 import type { AgentState } from './agent-store.ts';
+import { fileUrl } from './files.ts';
 import { Markdown } from './markdown.tsx';
+import { PanelResizer } from './PanelResizer.tsx';
+import { MAX_ATTACHMENTS, useAttachments } from './useAttachments.ts';
+import type { Attachments } from './useAttachments.ts';
 
 export interface AgentPanelProps {
   context: AgentTurnContext;
@@ -41,8 +45,32 @@ export function AgentPanel({ context, contextLabel, onClose }: AgentPanelProps) 
   const ready = status?.enabled && status.sdkInstalled;
   const running = active?.status === 'running';
 
+  // Pictures can be dropped anywhere on the panel, pasted into the box, or picked with the paperclip.
+  const attachments = useAttachments(tripId);
+  const [dragging, setDragging] = useState(false);
+  const canAttach = Boolean(ready) && !history;
+  const hasFiles = (e: React.DragEvent) => Array.from(e.dataTransfer.types).includes('Files');
+
   return (
-    <section className="agent card" aria-label="AI 助手">
+    <section
+      className={`agent card${dragging ? ' dragging' : ''}`}
+      aria-label="AI 助手"
+      onDragOver={(e) => {
+        if (!canAttach || !hasFiles(e)) return;
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
+      }}
+      onDrop={(e) => {
+        setDragging(false);
+        if (!canAttach || !hasFiles(e)) return;
+        e.preventDefault();
+        attachments.add(Array.from(e.dataTransfer.files));
+      }}
+    >
+      <PanelResizer />
       <header className="ag-head">
         <div className="ag-title">
           <h2>AI 助手</h2>
@@ -92,7 +120,7 @@ export function AgentPanel({ context, contextLabel, onClose }: AgentPanelProps) 
       {ready && !history && (
         <>
           <Transcript agent={agent} context={context} />
-          <Composer agent={agent} context={context} contextLabel={contextLabel} />
+          <Composer agent={agent} context={context} contextLabel={contextLabel} attachments={attachments} />
         </>
       )}
     </section>
@@ -284,6 +312,15 @@ function UserMessage({ item, idle, context }: { item: Extract<AgentItem, { kind:
   }
   return (
     <div className="ag-msg ag-user">
+      {item.images && item.images.length > 0 && (
+        <div className="ag-pics">
+          {item.images.map((ref) => (
+            <a key={ref} href={fileUrl(ref)} target="_blank" rel="noreferrer noopener" title="在新分頁開啟">
+              <img src={fileUrl(ref)} alt="附加的圖片" loading="lazy" />
+            </a>
+          ))}
+        </div>
+      )}
       <p>{item.text}</p>
       {idle && (
         <button
@@ -393,7 +430,7 @@ function QuestionCard({ item }: { item: Extract<AgentItem, { kind: 'question' }>
 
 // ---------- composer ----------
 
-function Composer({ agent, context, contextLabel }: { agent: AgentState; context: AgentTurnContext; contextLabel: string }) {
+function Composer({ agent, context, contextLabel, attachments }: { agent: AgentState; context: AgentTurnContext; contextLabel: string; attachments: Attachments }) {
   const { active, settings, status } = agent;
   const running = active?.status === 'running';
   const [text, setText] = useState('');
@@ -408,11 +445,16 @@ function Composer({ agent, context, contextLabel }: { agent: AgentState; context
     el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
   }, [text]);
 
+  const picker = useRef<HTMLInputElement | null>(null);
+  const canSend = (text.trim() !== '' || attachments.refs.length > 0) && !attachments.busy;
+
   const submit = async () => {
-    if (running || !text.trim()) return;
+    if (running || !canSend) return;
     const sent = text;
+    const pictures = attachments.refs;
     setText('');
-    if (!(await sendMessage(sent, context))) setText(sent);
+    if (await sendMessage(sent, context, undefined, pictures)) attachments.clear();
+    else setText(sent);
   };
 
   return (
@@ -422,13 +464,37 @@ function Composer({ agent, context, contextLabel }: { agent: AgentState; context
           正在看：{contextLabel}
         </p>
       )}
+      {attachments.items.length > 0 && (
+        <div className="ag-attach" aria-label="要附上的圖片">
+          {attachments.items.map((a) => (
+            <div key={a.key} className={`ag-thumb${a.error ? ' failed' : a.ref ? '' : ' loading'}`} title={a.error ?? undefined}>
+              <img src={a.preview} alt="" />
+              {!a.ref && !a.error && <span className="ag-thumb-state">上傳中</span>}
+              {a.error && <span className="ag-thumb-state">失敗</span>}
+              <button type="button" className="ag-thumb-x" onClick={() => attachments.remove(a.key)} aria-label="移除這張圖片">
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      {attachments.items.some((a) => a.error) && <p className="ag-error">{attachments.items.find((a) => a.error)?.error}</p>}
+      {attachments.notice && <p className="ag-note">{attachments.notice}</p>}
+      {attachments.items.length > 0 && <p className="ag-hint">圖片會送給 Claude 分析；請不要附護照、信用卡等證件。</p>}
       <textarea
         ref={area}
         value={text}
         rows={1}
-        placeholder={running ? 'Claude 正在處理…' : context.idea ? '想要什麼樣的旅行？' : '想怎麼改這趟行程？'}
+        placeholder={running ? 'Claude 正在處理…' : context.idea ? '想要什麼樣的旅行？' : '想怎麼改這趟行程？可以貼上或拖進圖片'}
         aria-label="給 AI 助手的訊息"
         onChange={(e) => setText(e.target.value)}
+        onPaste={(e) => {
+          // A screenshot on the clipboard becomes an attachment; pasting text still works as usual.
+          const files = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith('image/'));
+          if (files.length === 0) return;
+          e.preventDefault();
+          attachments.add(files);
+        }}
         onKeyDown={(e) => {
           // Enter confirms an IME candidate (注音 / 倉頡); only a bare Enter outside composition sends.
           if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -438,6 +504,27 @@ function Composer({ agent, context, contextLabel }: { agent: AgentState; context
         }}
       />
       <div className="ag-composer-bar">
+        <input
+          ref={picker}
+          type="file"
+          accept="image/*"
+          multiple
+          hidden
+          onChange={(e) => {
+            attachments.add(Array.from(e.target.files ?? []));
+            e.target.value = '';
+          }}
+        />
+        <button
+          type="button"
+          className="ag-icon ag-attach-btn"
+          onClick={() => picker.current?.click()}
+          disabled={attachments.items.length >= MAX_ATTACHMENTS}
+          aria-label="附上圖片"
+          title="附上圖片（也可以直接貼上或拖進來）"
+        >
+          ＋圖
+        </button>
         <select value={settings.model} onChange={(e) => updateSettings({ model: e.target.value, effort: '' })} aria-label="模型">
           <option value="">預設模型</option>
           {status?.models.map((m) => (
@@ -465,7 +552,7 @@ function Composer({ agent, context, contextLabel }: { agent: AgentState; context
             停止
           </button>
         ) : (
-          <button type="button" className="btn primary ag-send" onClick={() => void submit()} disabled={!text.trim()}>
+          <button type="button" className="btn primary ag-send" onClick={() => void submit()} disabled={!canSend}>
             送出
           </button>
         )}

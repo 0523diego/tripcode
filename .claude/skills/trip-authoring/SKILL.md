@@ -56,7 +56,7 @@ export default defineTrip({
 - Use `loc: { lat, lng }` and `placeId` (Google ids only) from `npm run tripcode -- places search "<name>, <city>"`. Without a Google key the search uses OpenStreetMap and returns `osm:` ids: keep `loc`, but do not write an `osm:` id into `placeId` (it is not a Google place id and would break Google Maps links). Do not type coordinates from memory for real plans. Items without `loc` are listed but not drawn on the map, which is better than a wrong pin.
 - `locked: true` marks things the user already booked or insists on (flights, hotels, must-dos). Keep a short `note` saying why, e.g. 「已訂」「使用者指定必去」. `bookingRef` (flights and hotels only) is filled by the user in the viewer; do not ask for it or invent one. `trip.ts` is committed to git while `bookings.md` is not, so never copy a booking reference into `bookings.md`.
 - Items in a day are listed in **chronological order**. The checker compares each timed item with the previous timed one.
-- A hotel item is placed on the **check-in day** with `nights`. Do not repeat it on following days.
+- A hotel item is placed on the **check-in day** with `nights`. Do not repeat it on following days. The viewer, the Google Maps links and `export links` derive each day's start and end from these items (`lodgingByDay` in `src/core/lodging.ts`: 「從住宿出發」「回到住宿」), so do not hand-write 從飯店出發 / 回飯店 stops; a stop that already sits at the hotel's `loc` is recognized and not doubled.
 
 ### Sourced values
 

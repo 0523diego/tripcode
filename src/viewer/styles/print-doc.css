@@ -1,0 +1,469 @@
+/* TripCode viewer — the printed itinerary (src/viewer/print/). Written for paper someone carries: one sheet per day,
+   a colour bar and a big day number to find the day by, rows with the time on the left and the status on the right,
+   and, after the days, the tickets the user attached, printed as they are.
+   Colour only decorates: every fact is also text, so a black-and-white print loses nothing. */
+
+:root {
+  /* Darker than the on-screen --day-N: those are 1.7–2.5:1 on white, these are 3.8–5.8:1. */
+  --print-day-1: #2f5fd0;
+  --print-day-2: #d2611c;
+  --print-day-3: #1f8a57;
+  --print-day-4: #c7357a;
+  --print-day-5: #138a85;
+  --print-day-6: #9a7400;
+  --print-day-7: #6a4fd0;
+  --print-day-8: #c43c3c;
+}
+
+.print-root {
+  display: none;
+}
+
+.pdoc {
+  color: #111;
+  background: #fff;
+  font-family: 'PingFang TC', 'Heiti TC', 'Microsoft JhengHei', 'Noto Sans CJK TC', 'Noto Sans TC', sans-serif;
+  font-size: 9pt;
+  line-height: 1.4;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+.pdoc[data-density='compact'] {
+  font-size: 8pt;
+}
+.pdoc[data-density='large'] {
+  font-size: 11pt;
+}
+.pdoc p,
+.pdoc h2,
+.pdoc h3,
+.pdoc figure {
+  margin: 0;
+}
+
+/* ---------- a day ---------- */
+.pd-day {
+  break-before: page;
+}
+.pd-day:first-child,
+.pd-day[data-break='false'] {
+  break-before: auto;
+}
+.pd-day[data-break='false'] {
+  margin-top: 9mm;
+}
+.pd-day[data-keep='true'] {
+  break-inside: avoid;
+}
+.pd-keep {
+  break-inside: avoid;
+}
+
+.pd-dayhead {
+  display: flex;
+  align-items: flex-start;
+  gap: 4mm;
+  padding: 0 0 2.5mm 4mm;
+  border-left: 3mm solid var(--pd-color);
+  border-bottom: 1.5pt solid #111;
+}
+.pd-daymark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 9mm;
+  line-height: 1;
+}
+.pd-dayno {
+  font-size: 22pt;
+  font-weight: 700;
+  color: var(--pd-color);
+}
+.pd-daymark small {
+  font-size: 6.5pt;
+  letter-spacing: 0.12em;
+  color: #555;
+}
+.pd-daymeta {
+  flex: 1;
+  min-width: 0;
+}
+.pd-daymeta h2 {
+  font-size: 10.5pt;
+  font-weight: 600;
+  color: #333;
+}
+.pd-daytitle {
+  margin-top: 0.5mm;
+  font-size: 14pt;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.pd-weather {
+  margin-top: 1mm;
+  font-size: 7.8pt;
+  color: #555;
+}
+.pd-sleep {
+  display: flex;
+  align-items: center;
+  gap: 2.5mm;
+  max-width: 66mm;
+  padding: 1.5mm 2mm 1.5mm 3mm;
+  border: 0.8pt solid #888;
+  border-radius: 1.2mm;
+}
+.pd-sleeptext {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 8.5pt;
+  line-height: 1.25;
+}
+.pd-sleeptext small {
+  font-size: 7pt;
+  color: #555;
+}
+
+/* ---------- rows ---------- */
+.pd-row {
+  display: grid;
+  grid-template-columns: 13mm 1fr 14mm;
+  column-gap: 3mm;
+  padding: 1.8mm 0 1.8mm 2.5mm;
+  border-bottom: 0.4pt solid #c8c8c8;
+  break-inside: avoid;
+}
+.pd-row.fixed {
+  box-shadow: inset 1mm 0 0 var(--pd-color);
+}
+.pd-time {
+  font-size: 9pt;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+}
+.pd-until {
+  display: block;
+  font-weight: 400;
+  color: #555;
+}
+.pd-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4mm;
+  min-width: 0;
+}
+.pd-titleline {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 1.5mm;
+}
+.pd-name {
+  font-size: 9.5pt;
+}
+.pd-kind {
+  font-size: 7.5pt;
+  color: #555;
+}
+.pd-note {
+  font-size: 7.8pt;
+  color: #444;
+  line-height: 1.35;
+}
+.pd-status {
+  font-size: 7.5pt;
+  font-weight: 600;
+  text-align: right;
+  color: #333;
+}
+.pd-leg {
+  display: grid;
+  grid-template-columns: 13mm 1fr;
+  column-gap: 3mm;
+  padding: 0.9mm 0 0.9mm 2.5mm;
+  font-size: 7.8pt;
+  color: #555;
+  break-inside: avoid;
+}
+.pd-leg .pd-note {
+  color: #555;
+}
+.pd-empty {
+  padding: 4mm 0 0 2.5mm;
+  color: #666;
+}
+
+/* ---------- ticket pages: the user's own files, printed as they are ---------- */
+.pd-tickets {
+  break-before: page;
+}
+.pd-tickets .pd-h {
+  margin-bottom: 3mm;
+}
+.pd-ticket {
+  break-inside: avoid;
+  margin: 0 0 6mm;
+}
+/* Normal and large: every ticket page gets a sheet of its own, as big as the sheet allows, so its QR code scans. */
+.pdoc:not([data-density='compact']) .pd-ticket[data-first='false'] {
+  break-before: page;
+}
+.pd-ticketcap {
+  margin-bottom: 1.5mm;
+  font-size: 8.5pt;
+  color: #333;
+}
+.pd-ticketimg {
+  display: block;
+  max-width: 100%;
+  max-height: 222mm;
+  margin: 0 auto;
+  object-fit: contain;
+  border: 0.2mm solid #ccc;
+}
+/* Compact: two ticket pages share a sheet (about 60% of an A4 page, a QR code is still ~20 mm). */
+.pdoc[data-density='compact'] .pd-ticketimg {
+  max-height: 108mm;
+}
+.pd-ticketerr {
+  color: #a00;
+}
+.pd-ticketskip {
+  margin-top: 4mm;
+}
+
+/* ---------- screen: nothing; print: only the document ---------- */
+@media print {
+  :root {
+    color-scheme: light;
+    --bg: #fff;
+    --surface: #fff;
+    --text: #111;
+    --muted: #555;
+    --border: #bbb;
+  }
+  html,
+  body,
+  #root {
+    height: auto;
+    background: #fff;
+    color: #111;
+  }
+  .app > :not(.print-root),
+  .toast-region,
+  .fixture-note {
+    display: none !important;
+  }
+  .app {
+    display: block;
+    height: auto;
+  }
+  .print-root {
+    display: block;
+  }
+}
+
+/* ---------- cover page ---------- */
+.pd-cover,
+.pd-closing {
+  break-before: page;
+}
+.pd-cover:first-child {
+  break-before: auto;
+}
+.pd-covermeta {
+  padding-bottom: 3mm;
+  border-bottom: 1.5pt solid #111;
+}
+.pd-covermeta h1 {
+  margin: 0;
+  font-size: 22pt;
+  line-height: 1.2;
+}
+.pd-covermeta p {
+  margin: 1mm 0 0;
+  font-size: 10pt;
+  color: #333;
+}
+.pd-h {
+  margin: 6mm 0 2mm;
+  font-size: 10.5pt;
+  font-weight: 700;
+  break-after: avoid;
+}
+.pd-glance,
+.pd-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.pd-glance th,
+.pd-glance td,
+.pd-table th,
+.pd-table td {
+  padding: 1.1mm 2mm;
+  border-bottom: 0.4pt solid #c8c8c8;
+  text-align: left;
+  vertical-align: top;
+  font-weight: 400;
+}
+.pd-glance tr,
+.pd-table tr {
+  break-inside: avoid;
+}
+.pd-glance th {
+  position: relative;
+  width: 9mm;
+  padding-left: 4.5mm;
+  font-weight: 700;
+  font-size: 10pt;
+  color: var(--pd-color);
+}
+.pd-glancebar {
+  position: absolute;
+  inset: 0.8mm auto 0.8mm 0;
+  width: 2.2mm;
+  background: var(--pd-color);
+}
+.pd-glancedate {
+  width: 22mm;
+  white-space: nowrap;
+}
+.pd-glancefixed {
+  display: block;
+  font-size: 7.5pt;
+  color: #555;
+}
+.pd-glancesleep {
+  width: 48mm;
+  font-size: 8pt;
+  color: #444;
+}
+.pd-stays {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3mm;
+}
+.pd-stay {
+  display: flex;
+  justify-content: space-between;
+  gap: 2mm;
+  padding: 2mm 2.5mm 2mm 3.5mm;
+  border: 0.8pt solid #888;
+  border-left: 2.2mm solid var(--pd-color);
+  border-radius: 1mm;
+  break-inside: avoid;
+}
+.pd-staytext {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6mm;
+  min-width: 0;
+}
+.pd-staytext small {
+  font-size: 7.5pt;
+  color: #555;
+}
+.pd-staytext b {
+  font-size: 10.5pt;
+  line-height: 1.25;
+}
+.pd-ref {
+  font-size: 8pt;
+}
+.pd-blank {
+  display: inline-block;
+  width: 24mm;
+  border-bottom: 0.6pt solid #666;
+  vertical-align: baseline;
+}
+.pd-blank.wide {
+  width: 70mm;
+}
+.pd-nowrap {
+  white-space: nowrap;
+}
+.pd-small {
+  font-size: 7.8pt;
+  color: #444;
+}
+.pd-table small {
+  color: #666;
+  font-size: 7.5pt;
+}
+.pd-bookings th {
+  font-size: 7.5pt;
+  color: #555;
+  border-bottom: 1pt solid #111;
+}
+.pd-urgent {
+  margin: 0;
+  padding-left: 5mm;
+  font-size: 9pt;
+}
+.pd-urgent span {
+  color: #444;
+  font-size: 8pt;
+}
+
+/* ---------- closing pages ---------- */
+.pd-closing .pd-h:first-child {
+  margin-top: 0;
+}
+.pd-notes {
+  break-before: auto;
+}
+.pd-writeins {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pd-writeins li {
+  display: flex;
+  align-items: flex-end;
+  gap: 3mm;
+  padding: 2mm 0;
+  font-size: 9pt;
+}
+.pd-writeins li span {
+  width: 52mm;
+}
+.pd-lines {
+  display: grid;
+}
+.pd-lines i {
+  height: 8mm;
+  border-bottom: 0.4pt solid #bbb;
+}
+
+/* ---------- candidates ---------- */
+.pd-cands {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.5mm 6mm;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pd-cands li {
+  display: flex;
+  justify-content: space-between;
+  gap: 2mm;
+  padding: 1.5mm 0;
+  border-bottom: 0.4pt solid #c8c8c8;
+  break-inside: avoid;
+}
+.pd-candtext {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4mm;
+  min-width: 0;
+}
+.pd-candtext b {
+  font-size: 9.5pt;
+}
+.pd-candtext small {
+  font-size: 7.5pt;
+  color: #555;
+}

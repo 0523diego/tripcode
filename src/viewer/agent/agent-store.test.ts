@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { AgentItem, AgentSession, AgentSessionSummary } from '../../agent/types.ts';
 import { applyEvent, pickSessionFor, readSettings } from './agent-store.ts';
-import { parseBlocks, parseInline } from './markdown.ts';
+import { classifyImage, parseBlocks, parseInline } from './markdown.ts';
 
 const summary = (id: string, updatedAt: string, extra: Partial<AgentSessionSummary> = {}): AgentSessionSummary => ({
   id,
@@ -110,4 +110,43 @@ test('pickSessionFor: every trip gets its own conversation, never another trip\'
   assert.equal(pickSessionFor(list, 'rome', 'gone'), 'rome-2', 'a deleted conversation falls back');
   assert.equal(pickSessionFor(list, 'idea-new', null), null, 'a trip with no conversation starts blank');
   assert.equal(pickSessionFor(list, null, null), 'loose');
+});
+
+
+test('markdown: tables need a separator row, keep alignment, escape pipes, and pad short rows', () => {
+  assert.deepEqual(parseBlocks('比較如下：\n\n| 航空 | 價格 | 轉機 |\n|:--|--:|:-:|\n| 阿提哈德 | NT$29,387 | 1 |\n| 土耳其 | NT$32,111 \\| 含稅 |\n\n結論'), [
+    { kind: 'p', text: '比較如下：' },
+    {
+      kind: 'table',
+      head: ['航空', '價格', '轉機'],
+      align: ['left', 'right', 'center'],
+      rows: [
+        ['阿提哈德', 'NT$29,387', '1'],
+        ['土耳其', 'NT$32,111 | 含稅', ''],
+      ],
+    },
+    { kind: 'p', text: '結論' },
+  ]);
+  // A line with a pipe but no separator row is just text; a bare --- is not a table.
+  assert.deepEqual(parseBlocks('a | b\nc | d'), [{ kind: 'p', text: 'a | b c | d' }]);
+  assert.deepEqual(parseBlocks('a | b\n---'), [{ kind: 'p', text: 'a | b ---' }]);
+  // Streaming: a header and separator with no body yet is already a table.
+  assert.deepEqual(parseBlocks('| x | y |\n|---|---|'), [{ kind: 'table', head: ['x', 'y'], align: [null, null], rows: [] }]);
+});
+
+test('markdown: images show only from trips/ or as a click-through https link; anything else stays text', () => {
+  assert.equal(classifyImage('trips/rome/attachments/chart.svg'), 'local');
+  assert.equal(classifyImage('node_modules/.tripcode/attachments/img-a-12345678.png'), 'local');
+  assert.equal(classifyImage('https://example.com/a.png'), 'remote');
+  for (const bad of ['http://example.com/a.png', 'javascript:alert(1)', 'data:image/png;base64,AAAA', '/etc/passwd', 'trips/../secret.png', 'trips/a/.git/x.png', 'trips/a/x.png?q=1', 'trips//x.png', 'src/viewer/a.png', 'file:///a.png']) {
+    assert.equal(classifyImage(bad), null, bad);
+  }
+  assert.deepEqual(parseInline('看圖 ![行程圖](trips/rome/attachments/map.svg) 與 ![外面](https://example.com/p.png) 與 ![壞](javascript:x)'), [
+    { kind: 'text', text: '看圖 ' },
+    { kind: 'image', alt: '行程圖', src: 'trips/rome/attachments/map.svg', local: true },
+    { kind: 'text', text: ' 與 ' },
+    { kind: 'image', alt: '外面', src: 'https://example.com/p.png', local: false },
+    { kind: 'text', text: ' 與 ' },
+    { kind: 'text', text: '![壞](javascript:x)' },
+  ]);
 });

@@ -125,7 +125,13 @@ interface ItemBase {
 export type Item = ItemBase &
   (
     | { kind: 'poi'; minutes?: number; ticket?: Sourced<Money> }
-    | { kind: 'meal' }
+    | {
+        kind: 'meal';
+        slot?: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+        /** Ids of the dishes (trips/<id>/food.json) this meal is meant to be. */
+        dishes?: string[];
+        checks?: MealChecks;
+      }
     | { kind: 'hotel'; nights: number; price?: Sourced<Money>; bookingRef?: string }
     | {
         kind: 'transit';
@@ -145,6 +151,16 @@ export type Item = ItemBase &
     | { kind: 'free' }
   );
 
+/** What was found out about the place chosen for a meal. Only facts with a source and a date; never a rating. */
+export interface MealChecks {
+  /** The place exists (seen on a map: "osm:node/…", a Google place, or a link the user pasted). */
+  exists?: Sourced<boolean>;
+  /** Open when the meal starts, from the place's own opening hours. Never written as false: a place closed then is not chosen. */
+  openAtSlot?: Sourced<boolean>;
+  /** Pages that recommend it; the value is a short label, the source the address. */
+  recommendedBy?: Sourced<string>[];
+}
+
 export type ItemKind = Item['kind'];
 
 export interface Day {
@@ -153,6 +169,11 @@ export interface Day {
   title?: string;
   /** The city this day belongs to, e.g. "米蘭". The booking page groups what to buy by it; without it, by where you sleep. */
   city?: string;
+  /**
+   * The day's color, 1–8 (the viewer's --day-N palette). Absent = automatic: days that sleep in the same hotel share one
+   * color (src/core/day-colors.ts). Set from the viewer's color dot next to the day's heading.
+   */
+  color?: number;
   /** 'clear' marks a day that needs good weather and may be swapped with an 'any' day. */
   weather?: 'clear' | 'any';
   /** Day-structure notes (readiness codes such as 'walking-heavy') the user looked at and accepts for this day. */

@@ -1043,6 +1043,14 @@ export function setItemLoc(src: string, itemId: string, loc: { lat: number; lng:
   return editProp(src, 'id', itemId, 'loc', `{ lat: ${loc.lat}, lng: ${loc.lng}, fetchedAt: ${quote(fetchedAt)} }`);
 }
 
+/** Set the day's `color` (1–8, a slot of the viewer's day palette); null removes it so the day goes back to its automatic color. */
+export function setDayColor(src: string, date: string, color: number | null): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('date 必須是 YYYY-MM-DD');
+  if (color !== null && !(Number.isInteger(color) && color >= 1 && color <= 8)) throw new Error('color 必須是 1 到 8 的整數，或 null');
+  if (!locate(src, 'date', date)) throw new Error(`找不到日期為「${date}」的那一天`);
+  return editProp(src, 'date', date, 'color', color === null ? null : String(color));
+}
+
 /** Set the day's `accepted` list (readiness codes the user accepts for that day); an empty list removes the property. */
 export function setDayAccepted(src: string, date: string, codes: string[]): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('date 必須是 YYYY-MM-DD');
@@ -1051,3 +1059,44 @@ export function setDayAccepted(src: string, date: string, codes: string[]): stri
   return editProp(src, 'date', date, 'accepted', clean.length === 0 ? null : `[${clean.map(quote).join(', ')}]`);
 }
 
+
+// ---- meals: choosing a place ----------------------------------------------------------------------
+
+/** A JS object/array/string/number/boolean written the way trip files are written (single quotes, bare keys). */
+function jsLiteral(v: unknown): string {
+  if (typeof v === 'string') return quote(v);
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  if (Array.isArray(v)) return `[${v.map(jsLiteral).join(', ')}]`;
+  if (v && typeof v === 'object') {
+    const parts = Object.entries(v as Record<string, unknown>)
+      .filter(([, x]) => x !== undefined)
+      .map(([k, x]) => `${/^[A-Za-z_]\w*$/.test(k) ? k : quote(k)}: ${jsLiteral(x)}`);
+    return `{ ${parts.join(', ')} }`;
+  }
+  throw new Error('不能寫進行程檔的值');
+}
+
+export interface MealPlacePatch {
+  title: string;
+  loc?: { lat: number; lng: number; fetchedAt: string };
+  placeId?: string;
+  slot?: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  dishes?: string[];
+  checks?: Record<string, unknown>;
+}
+
+/** Put a chosen place into an existing meal item (a placeholder like 「午餐：待選」): title, coordinates, place id, slot, dishes and the checks. */
+export function setMealPlace(src: string, itemId: string, patch: MealPlacePatch): string {
+  if (!locate(src, 'id', itemId)) throw new Error(`找不到 id 為「${itemId}」的物件`);
+  if (typeof patch.title !== 'string' || patch.title.trim() === '') throw new Error('店名不可為空');
+  let out = editProp(src, 'id', itemId, 'title', quote(patch.title));
+  if (patch.loc) {
+    if (!Number.isFinite(patch.loc.lat) || !Number.isFinite(patch.loc.lng) || Math.abs(patch.loc.lat) > 90 || Math.abs(patch.loc.lng) > 180) throw new Error('座標無效');
+    out = editProp(out, 'id', itemId, 'loc', jsLiteral({ lat: patch.loc.lat, lng: patch.loc.lng, fetchedAt: patch.loc.fetchedAt }));
+  }
+  if (patch.placeId !== undefined) out = editProp(out, 'id', itemId, 'placeId', quote(patch.placeId));
+  if (patch.slot !== undefined) out = editProp(out, 'id', itemId, 'slot', quote(patch.slot));
+  if (patch.dishes !== undefined) out = editProp(out, 'id', itemId, 'dishes', jsLiteral(patch.dishes));
+  if (patch.checks !== undefined) out = editProp(out, 'id', itemId, 'checks', jsLiteral(patch.checks));
+  return out;
+}

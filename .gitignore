@@ -9,4 +9,12 @@ trips/*/bookings.md
 trips/*/export/
 trips/*/tickets/
 trips/*/purchase/
+# Pictures pasted into the AI panel (screenshots can show booking details)
+trips/*/attachments/
+# Flight price snapshots (tripcode flights --save): personal search history
+trips/*/prices/
+# The food guide holds the travellers' taste (what they avoid, budget, kids): personal, kept out of git by default
+trips/*/food.json
 trips/*/.notion.json
+# Deleted trips are moved here, not erased (see the trip-delete endpoint)
+.tripcode-trash/

@@ -15,6 +15,8 @@ export interface SendOptions {
   effort?: AgentEffort | null | undefined;
   /** Id of an earlier user message being edited: the conversation is cut back to it first. */
   edit?: string | undefined;
+  /** Repo-relative paths of uploaded pictures (already validated by the route). */
+  images?: readonly string[] | undefined;
 }
 
 type Pending =
@@ -49,7 +51,10 @@ export function createAgentRunner(opts: {
     const session = store.get(sessionId);
     if (!session) throw new Error(`未知的 agent 對話：${sessionId}`);
     if (running.has(sessionId)) throw new Error('這個對話正在執行');
-    const text = options.text.trim();
+    let images = options.images ? [...options.images] : [];
+    let text = options.text.trim();
+    // A picture alone is a fine message.
+    if (!text && images.length > 0) text = '（請看附上的圖片）';
     if (!text) throw new Error('訊息是空的');
 
     let promptText = text;
@@ -58,6 +63,8 @@ export function createAgentRunner(opts: {
       const index = session.items.findIndex((i) => i.id === options.edit);
       const target = session.items[index];
       if (target?.kind !== 'user') throw new Error('找不到那則訊息');
+      // Rewriting a message keeps the pictures that were on it unless the edit brings its own.
+      if (!options.images && target.images) images = [...target.images];
       if (!session.trimmed && !session.items.slice(0, index).some((i) => i.kind === 'user')) {
         // Editing the very first message: start the provider conversation over.
         store.patch(sessionId, { providerSessionId: null, providerCheckpoint: null });
@@ -85,6 +92,7 @@ export function createAgentRunner(opts: {
       id: newId('u'),
       ts: now(),
       text,
+      ...(images.length > 0 ? { images } : {}),
       ...(session.providerCheckpoint ? { resumeAt: session.providerCheckpoint } : {}),
     });
     store.patch(sessionId, { status: 'running' });
@@ -197,7 +205,7 @@ export function createAgentRunner(opts: {
       .run({
         cwd: userCwd,
         writableRoots,
-        prompt: buildTurnPrompt(promptText, options.context),
+        prompt: buildTurnPrompt(promptText, options.context, images),
         systemPromptAppend: systemPromptAppend(provider.askInstruction),
         resume: session.providerSessionId,
         resumeAt,

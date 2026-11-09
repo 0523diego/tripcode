@@ -101,3 +101,4 @@ Rule: small steps; every finished chunk is committed; this board is updated in t
   地圖／行程清單／核心／外框四塊平行完成，374 tests、typecheck、build 全綠，三趟行程 check 0 warnings。
   foreman 退回一輪：missing-transit 原本在一趟真實行程上誤報 4 次（已訂的巴士團）並印出
   367 分鐘的假交通時間（巴斯→倫敦實際約 100 分鐘），改為 30 公里外只講距離、locked 不報。
+- 2026-10-19 Lodging endpoints: every day starts/ends at the hotel (derived from `nights`) in the list, map and Maps links; `src/core/lodging.ts`.

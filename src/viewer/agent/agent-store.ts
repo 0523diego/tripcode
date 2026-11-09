@@ -309,10 +309,19 @@ export function updateSettings(patch: Partial<AgentSettings>): void {
   set({ settings });
 }
 
-/** Sends a message, creating a session first when none is open. `edit` is the user message id being rewritten. */
-export async function sendMessage(text: string, context: AgentTurnContext, edit?: string): Promise<boolean> {
+/** Uploads one (already scaled) picture and returns its repo-relative path; throws a readable message on refusal. */
+export async function uploadImage(base64: string, tripId: string | null): Promise<string> {
+  const { ref } = await request<{ ref: string }>('/uploads', { method: 'POST', body: { tripId, data: base64 } });
+  return ref;
+}
+
+/**
+ * Sends a message, creating a session first when none is open. `edit` is the user message id being rewritten;
+ * `images` are the paths uploadImage returned (a message may be pictures only).
+ */
+export async function sendMessage(text: string, context: AgentTurnContext, edit?: string, images: string[] = []): Promise<boolean> {
   const trimmed = text.trim();
-  if (!trimmed) return false;
+  if (!trimmed && images.length === 0) return false;
   // The message must never land in another trip's conversation, even when it is sent before the panel has shown.
   await focusTrip(context.tripId ?? null);
   let session = state.active;
@@ -323,7 +332,15 @@ export async function sendMessage(text: string, context: AgentTurnContext, edit?
   try {
     await request(`/sessions/${session.id}/messages`, {
       method: 'POST',
-      body: { text: trimmed, context, autoApprove, ...(model ? { model } : {}), ...(effort ? { effort } : {}), ...(edit ? { edit } : {}) },
+      body: {
+        text: trimmed,
+        context,
+        autoApprove,
+        ...(model ? { model } : {}),
+        ...(effort ? { effort } : {}),
+        ...(edit ? { edit } : {}),
+        ...(images.length > 0 ? { images } : {}),
+      },
     });
     return true;
   } catch (e) {

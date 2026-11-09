@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { diffDay, formatMinutes, tripDayStats, tripMetrics, type DayDiff, type DayStats, type TripMetrics } from '../compare.ts';
+import { dayColorSlots, dayColorVar } from '../../core/day-colors.ts';
 import { dateLabel, dayVar } from '../model.ts';
 import type { TripEntry } from '../trips.ts';
 import { variantName } from '../variant.ts';
@@ -41,6 +42,7 @@ function DayCell({
   diff,
   mine,
   date,
+  slot,
   onOpen,
 }: {
   file: string;
@@ -49,6 +51,8 @@ function DayCell({
   diff: DayDiff;
   mine: string[];
   date: string | undefined;
+  /** The day's palette slot in its own trip (hotel color or the day's own); falls back to the day number. */
+  slot?: number;
   onOpen: (file: string, dayIdx: number) => void;
 }) {
   if (!stats) {
@@ -58,7 +62,7 @@ function DayCell({
     <button
       type="button"
       className={`cmp-cell${diff.differs ? ' differs' : ''}`}
-      style={{ ['--day-color' as string]: `var(${dayVar(idx)})` }}
+      style={{ ['--day-color' as string]: `var(${slot ? dayColorVar(slot) : dayVar(idx)})` }}
       onClick={() => onOpen(file, idx)}
       aria-label={`在一般檢視開啟 ${variantName(file)} 第 ${idx + 1} 天`}
     >
@@ -84,6 +88,8 @@ export function CompareView({ entry, left, right, onPick, onOpen }: Props) {
   const rf = entry.files.find((f) => f.file === right) ?? entry.files[1] ?? entry.files[0];
   const ls = useMemo(() => (lf ? tripDayStats(lf.trip) : []), [lf]);
   const rs = useMemo(() => (rf ? tripDayStats(rf.trip) : []), [rf]);
+  const lc = useMemo(() => (lf ? dayColorSlots(lf.trip) : []), [lf]);
+  const rc = useMemo(() => (rf ? dayColorSlots(rf.trip) : []), [rf]);
   const lm = useMemo(() => (lf ? tripMetrics(lf.trip) : null), [lf]);
   const rm = useMemo(() => (rf ? tripMetrics(rf.trip) : null), [rf]);
   if (!lf || !rf || !lm || !rm) return null;
@@ -119,8 +125,8 @@ export function CompareView({ entry, left, right, onPick, onOpen }: Props) {
           const diff = diffDay(a, b);
           return (
             <div key={i} className="cmp-row" role="group" aria-label={`第 ${i + 1} 天`}>
-              <DayCell file={lf.file} idx={i} stats={a} diff={diff} mine={diff.onlyA} date={lf.trip.days[i]?.date} onOpen={onOpen} />
-              <DayCell file={rf.file} idx={i} stats={b} diff={diff} mine={diff.onlyB} date={rf.trip.days[i]?.date} onOpen={onOpen} />
+              <DayCell file={lf.file} idx={i} stats={a} diff={diff} mine={diff.onlyA} date={lf.trip.days[i]?.date} slot={lc[i]} onOpen={onOpen} />
+              <DayCell file={rf.file} idx={i} stats={b} diff={diff} mine={diff.onlyB} date={rf.trip.days[i]?.date} slot={rc[i]} onOpen={onOpen} />
             </div>
           );
         })}
