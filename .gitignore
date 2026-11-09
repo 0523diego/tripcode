@@ -11,6 +11,8 @@ trips/*/tickets/
 trips/*/purchase/
 # Pictures pasted into the AI panel (screenshots can show booking details)
 trips/*/attachments/
+# Photos on itinerary items (your own pictures, and other people's copyrighted ones saved from official pages)
+trips/*/photos/
 # Flight price snapshots (tripcode flights --save): personal search history
 trips/*/prices/
 # The food guide holds the travellers' taste (what they avoid, budget, kids): personal, kept out of git by default

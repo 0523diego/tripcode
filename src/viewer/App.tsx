@@ -462,6 +462,7 @@ function TripView({ trips, entry }: { trips: TripEntry[]; entry: TripEntry }) {
           <AddPlace trip={trip} dayIdx={dayIdx} send={send} />
           <OptimizeHint tripId={tripId} file={currentFile} trip={trip} dayIdx={dayIdx} send={send} />
           <Itinerary
+            tripId={tripId}
             trip={trip}
             dayIdx={dayIdx}
             selection={selection}

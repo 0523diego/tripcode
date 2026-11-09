@@ -4,6 +4,7 @@ import type { Send } from '../api.ts';
 import { KIND_LABEL, STATUS_LABEL, dateLabel, findItem, type Selection } from '../model.ts';
 import { MealProof } from '../food/MealProof.tsx';
 import { Attachments } from './Attachments.tsx';
+import { PhotoStrip } from './PhotoStrip.tsx';
 
 interface Props {
   tripId: string;
@@ -200,6 +201,7 @@ export function DetailPanel({ tripId, trip, selection, dayIdx, send, onClose, em
           {item.start && ` · ${item.start}${item.end ? `–${item.end}` : ''}`}
           {item.locked && <em className="tag lock">已確定</em>}
         </p>
+        <PhotoStrip tripId={tripId} item={item} send={send} />
         {item.note && <p>{item.note}</p>}
         <ItemActions item={item} send={send} />
         <MealProof tripId={tripId} item={item} />
@@ -247,7 +249,8 @@ export function DetailPanel({ tripId, trip, selection, dayIdx, send, onClose, em
   }
 
   return (
-    <section className={`detail card${embedded ? ' embedded' : ''}`} aria-label="詳細資料">
+    // tabIndex -1: a click anywhere in the panel focuses it, so pasting a picture (PhotoStrip) works without a field focused.
+    <section className={`detail card${embedded ? ' embedded' : ''}`} aria-label="詳細資料" tabIndex={-1}>
       {embedded && (
         <button type="button" className="detail-back" onClick={onClose}>
           ‹ 返回行程

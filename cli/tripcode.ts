@@ -16,6 +16,7 @@ import { buyCommand } from './commands/buy.ts';
 import { flightsCommand } from './commands/flights.ts';
 import { foodCommand } from './commands/food.ts';
 import { ideaCommand } from './commands/idea.ts';
+import { photoCommand } from './commands/photo.ts';
 import { GoogleApiError } from './google.ts';
 import { OsmApiError } from './osm.ts';
 
@@ -41,6 +42,7 @@ export const USAGE = `用法：tripcode <command> [選項]（加 --pretty 輸出
   list
   service <install|uninstall|status|restart|logs>   讓 TripCode 常駐在背景（macOS）：登入就自動啟動，不用每次再開（tripcode service --help）
   food <show|taste|vote|dish|evidence|reject> …           這趟要吃什麼：必吃的菜、口味、看過的店與證據（tripcode food --help）
+  photo <add|remove|list> …                             項目的照片：從官方網頁存一張照片並記下來源、拿掉、列出（tripcode photo --help）
   flights <quote|dates|trip|status> …                    機票報價（Google Flights 公開頁面，預設關閉，要在 .env 設 TRIPCODE_FLIGHTS=1；tripcode flights --help）
   buy <watch|scan|alerts|browser> …                      開賣日提醒、價格監控、在 TripCode 自己的 Chrome 讀頁面（不付款；tripcode buy --help）
 `;
@@ -53,6 +55,8 @@ export async function run(argv: string[], ctx: CliContext): Promise<number> {
     if (argv[0] === 'idea') return await ideaCommand(ctx, argv.slice(1));
     // `food` has its own sub-commands and flags (cli/commands/food.ts).
     if (argv[0] === 'food') return await foodCommand(ctx, argv.slice(1));
+    // `photo` has its own sub-commands and flags (cli/commands/photo.ts).
+    if (argv[0] === 'photo') return await photoCommand(ctx, argv.slice(1));
     // `flights` has its own sub-commands and flags (cli/commands/flights.ts).
     if (argv[0] === 'flights') return await flightsCommand(ctx, argv.slice(1));
     // `service` also has its own flags (--port) and never goes through the generic parser.

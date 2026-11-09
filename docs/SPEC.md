@@ -71,6 +71,7 @@ otherwise `item.hours?.value` is used. Rules (code → level):
   when that day contains an arriving flight.
 - `missing-source` (error): a `Sourced` value has an empty `source` or invalid `fetchedAt`.
 - `duplicate-id` (error): two items/candidates share an id.
+- `photo` (error): an item's `photos` entry breaks the Photo rules (`src/core/photos.ts`).
 - `missing-transit` (warn): two consecutive located stops of a day (poi/meal/hotel with `loc`; flights and items without
   `loc` are skipped) have no `transit` item between them and the straight-line transit estimate
   (`estimateMinutes(a, b, 'transit')`, see `optimize.ts`) is longer than 20 minutes. Up to 30 km the message names both
@@ -411,3 +412,22 @@ value here is organising what to book, not paying.
 | 畫面 | 訂票清單的「找吃的 →」開 `MealDrawer`（菜卡、口味、附近的店、證據徽章、加入／不要／Google 地圖）；`food` endpoint＋`tripcode:food` 事件（不用 glob 載入，免得每次投票都重整頁面）；行程詳細資料的 `MealProof` | `src/viewer/food/*`、`styles/food.css` |
 
 已知限制：OSM 沒有評分，營業時間只有 16–45% 有寫、很多格式讀不懂（讀不懂就是「未知」）；義大利的店名不會寫菜名，所以多半是 generalMode；Wikivoyage 的菜單是「城市出名吃什麼」，不是「這家店做得好不好」；Google Places 路徑（評分即時顯示、不存檔）還沒做；菜的圖片（Wikidata P18）還沒做；行程頁的空餐列還沒有直接的「找吃的」按鈕（在詳細資料裡有）。
+
+## 項目照片（2026-11-09）
+
+**Contract addition** (`src/core/types.ts`): `Photo { file, caption?, source?: { url, label } }` and `ItemBase.photos?: Photo[]`.
+`file` is `photos/<name>.jpg|png|webp` (`^photos/[a-z0-9][a-z0-9._-]*\.(jpg|png|webp)$`, no `..`), relative to the trip folder; the
+name is generated from the item id and a hash of the bytes. `caption` is one line, ≤ 120 characters; `source.url` is https and
+`source.label` a non-empty line. No other fields (no rating). Rules in `src/core/photos.ts`; `check` reports a broken entry as
+`photo` (error). Files live in `trips/<id>/photos/` (gitignored).
+
+| 部分 | 做法 | 檔案 |
+|---|---|---|
+| 編輯 | `addPhoto(src, itemId, photo)` / `removePhoto(src, itemId, file)`，和附件一樣只改那個項目的 `photos: [...]`（沒有就建立、空了就拿掉） | `src/core/source-edit.ts` |
+| 存檔 | 型別看 magic bytes（JPEG／PNG／WebP；HEIC 請先轉 JPEG），≤ 8 MB；網路照片另須 ≥ 15 KB；同一張照片在同一項目只存一次；移除時沒有任何行程檔（含 variant）用到才刪檔 | `cli/photo-service.ts` |
+| 端點 | `photo-add {tripId, file?, itemId, dataBase64, filename?, caption?}`、`photo-fetch {tripId, file?, itemId, imageUrl?, pageUrl?, sourceLabel, caption?}`（經 `cli/safe-fetch.ts`；只有 `pageUrl` 時取網頁的分享圖片；來源記 `pageUrl`，沒有才記 `imageUrl`；抓不到回 422）、`photo-remove {tripId, file?, itemId, photoFile}`；不可復原（和 `attach` 一樣） | `vite-plugin-tripcode.ts` |
+| 讀圖 | `GET /trips/<id>/photos/<name>`：只給符合檔名規則、真的在那個資料夾裡的檔案（不跟 symlink 出去、沒有目錄列表、`nosniff`），其他一律 404 | `vite-plugin-tripcode.ts`（`photoRequest`） |
+| CLI | `tripcode photo add <tripId> <itemId> (--image <https> \| --page <https>) --label "<來源>" [--caption …]`、`photo remove`、`photo list` | `cli/commands/photo.ts` |
+| 畫面 | 詳細資料最上面的縮圖列、「＋ 加照片」（可多選）、拖放與貼上、燈箱（Esc、← →、焦點鎖定與還原、說明、「來源：… ↗」、移除）；行程列表有照片的項目顯示第一張的 40 px 縮圖 | `src/viewer/components/PhotoStrip.tsx`、`DetailPanel.tsx`、`Itinerary.tsx`、`styles/forms.css`、`styles/itinerary.css` |
+
+照片只是參考，不是證據：AI 只從讀過的官方網頁存照片並附來源，季節不同要寫在說明，不從照片推論積雪、營業或人潮（`trip-authoring`、AI 面板提示）。列印不含照片。

@@ -5,6 +5,7 @@ import { isDayColor } from './day-colors.ts';
 import { fromMinutes, isIsoDate, tryToMinutes, weekday } from './time.ts';
 import { estimateMinutes, haversineKm } from './optimize.ts';
 import { windowsFor } from './hours.ts';
+import { photoProblem } from './photos.ts';
 
 export interface CheckOptions {
   /** Supplies live opening hours; falls back to `item.hours?.value` when it returns undefined. */
@@ -380,6 +381,13 @@ export function checkTrip(trip: Trip, opts: CheckOptions = {}): Issue[] {
             message: `${item.title} 的${name}缺少來源，或取得時間（fetchedAt）無效`,
           });
         }
+      }
+
+      // ---- photo: the shape of item.photos (file name rule, one-line caption, https source with a label)
+      const photos = (item as { photos?: unknown }).photos;
+      if (photos !== undefined) {
+        const problems = Array.isArray(photos) ? photos.map(photoProblem).filter((m): m is string => m !== undefined) : ['photos 必須是陣列'];
+        for (const m of problems) push({ level: 'error', code: 'photo', date: day.date, itemId: item.id, message: `${item.title}：${m}` });
       }
     }
 

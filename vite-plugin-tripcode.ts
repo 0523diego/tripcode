@@ -4,12 +4,14 @@
 // are ever written.
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http';
 import { mkdir, readdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
+import { createReadStream, realpathSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { loadEnv } from 'vite';
 import type { Plugin } from 'vite';
 import { pathToFileURL } from 'node:url';
-import type { Attachment, Candidate, Trip } from './src/core/types.ts';
+import type { Attachment, Candidate, Photo, Trip } from './src/core/types.ts';
 import type { EditHistory } from './src/core/history.ts';
+import { PHOTO_FILE_RE } from './src/core/photos.ts';
 import type { FetchLike } from './cli/google.ts';
 import type { Throttle } from './cli/osm.ts';
 import type { ViewerSearchResult } from './cli/search.ts';
@@ -21,6 +23,8 @@ export interface SourceEdits {
   insertCandidate(src: string, candidate: Candidate): string;
   addAttachment(src: string, itemId: string, attachment: Attachment): string;
   removeAttachment(src: string, itemId: string, file: string): string;
+  addPhoto(src: string, itemId: string, photo: Photo): string;
+  removePhoto(src: string, itemId: string, file: string): string;
   findObjectById(src: string, id: string): { start: number; end: number } | null;
   listDayDates(src: string): string[];
   moveItem(src: string, itemId: string, toDate: string, beforeItemId?: string | null): string;
@@ -69,7 +73,7 @@ export interface HandlerResult {
   json: { ok: true; [k: string]: unknown } | { ok: false; error: string; /** Set by undo / redo so the viewer can refresh its buttons. */ history?: unknown };
 }
 
-export const ENDPOINTS = ['comment', 'item-field', 'candidate', 'inbox', 'current', 'search', 'add-candidate', 'attach', 'detach', 'new-trip', 'move-item', 'schedule-candidate', 'remove-item', 'set-locked', 'booking', 'meal', 'accept', 'optimize', 'undo', 'redo', 'history', 'cover', 'cover-remove', 'trip-delete', 'day-color', 'idea-new', 'idea', 'idea-list', 'idea-finish', 'food', 'ticket-image'] as const;
+export const ENDPOINTS = ['comment', 'item-field', 'candidate', 'inbox', 'current', 'search', 'add-candidate', 'attach', 'detach', 'new-trip', 'move-item', 'schedule-candidate', 'remove-item', 'set-locked', 'booking', 'meal', 'accept', 'optimize', 'undo', 'redo', 'history', 'cover', 'cover-remove', 'trip-delete', 'day-color', 'idea-new', 'idea', 'idea-list', 'idea-finish', 'food', 'ticket-image', 'photo-add', 'photo-fetch', 'photo-remove'] as const;
 export type Endpoint = (typeof ENDPOINTS)[number];
 
 const TRIP_ID_RE = /^[a-z0-9-]+$/;
@@ -89,10 +93,12 @@ const ATTACHMENT_KINDS = ['transport', 'entry', 'booking', 'other'];
 const OPTIMIZE_MODES = ['transit', 'walk', 'drive'] as const;
 const LANG_RE = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 const TICKET_FILE_RE = /^tickets\/[a-z0-9][a-z0-9._-]*$/;
+/** A photo of an item is at most 8 MB (cli/photo-service.ts); its base64 plus the JSON envelope. */
+const MAX_PHOTO_BODY = Math.ceil((8 * 1024 * 1024 * 4) / 3) + 100_000;
 
 /** Request body size limit for an endpoint (bytes). */
 export function bodyLimitFor(endpoint: string): number {
-  return endpoint === 'attach' ? MAX_ATTACH_BODY : MAX_BODY;
+  return endpoint === 'attach' ? MAX_ATTACH_BODY : endpoint === 'photo-add' ? MAX_PHOTO_BODY : MAX_BODY;
 }
 
 /**
@@ -205,6 +211,16 @@ function refId(body: Record<string, unknown>, key: string): string {
 /** `beforeItemId`: absent / null means "at the end of the day". */
 function optionalRefId(body: Record<string, unknown>, key: string): string | undefined {
   return body[key] === undefined || body[key] === null ? undefined : refId(body, key);
+}
+
+/** An optional one-line text field: absent / null / empty = undefined. */
+function optionalLine(body: Record<string, unknown>, key: string, max: number): string | undefined {
+  const v = body[key];
+  if (v === undefined || v === null || v === '') return undefined;
+  if (typeof v !== 'string') bad(`無效的 ${key}`);
+  if (v.length > max) bad(`${key} 過長（最多 ${max} 字）`);
+  const t = singleLine(v, key).trim();
+  return t === '' ? undefined : t;
 }
 
 /** Checks `toDate` is a date of the trip and the ids exist, so the pure edit can only fail on layout problems. */
@@ -795,6 +811,53 @@ async function handleCore(endpoint: string, body: unknown, deps: HandlerDeps): P
         }
         return { status: 200, json: { ok: true, deleted } };
       }
+      case 'photo-add':
+      case 'photo-fetch':
+      case 'photo-remove': {
+        // Photos of an item (trips/<id>/photos/, gitignored). The checks, names and file writes live in cli/photo-service.ts, shared
+        // with `tripcode photo`; here only the request is read. Not undoable, like `attach`: undo would leave the file behind.
+        const svc = await import('./cli/photo-service.ts');
+        const file = fileOf(b);
+        const itemId = refId(b, 'itemId');
+        const caption = optionalLine(b, 'caption', 120);
+        const pdeps = { root: deps.root, edits: deps.edits };
+        try {
+          if (endpoint === 'photo-remove') {
+            const photoFile = singleLine(str(b, 'photoFile', { max: 200 }), 'photoFile');
+            return { status: 200, json: { ok: true, ...(await svc.removePhotoEntry(pdeps, { tripId, file, itemId, photoFile })) } };
+          }
+          if (endpoint === 'photo-add') {
+            // `filename` is only a hint from the browser; the type and the name come from the bytes.
+            if (b.filename !== undefined && b.filename !== null) singleLine(str(b, 'filename', { max: 300 }), 'filename');
+            const data = b.dataBase64;
+            if (typeof data !== 'string' || data === '') bad('缺少或無效的欄位：dataBase64');
+            if (!/^[A-Za-z0-9+/]+={0,2}$/.test(data) || data.length % 4 !== 0) bad('dataBase64 不是有效的 base64');
+            if ((data.length / 4) * 3 > svc.MAX_PHOTO_BYTES + 3) bad(`照片太大（上限 ${svc.MAX_PHOTO_BYTES / 1024 / 1024} MB）`);
+            const bytes = Buffer.from(data, 'base64');
+            const r = await svc.addPhotoBytes(pdeps, { tripId, file, itemId, bytes, ...(caption !== undefined ? { caption } : {}) });
+            return { status: 200, json: { ok: true, ...r } };
+          }
+          const label = title120(b, 'sourceLabel');
+          const imageUrl = optionalLine(b, 'imageUrl', 2000);
+          const pageUrl = optionalLine(b, 'pageUrl', 2000);
+          if (!imageUrl && !pageUrl) bad('請給 imageUrl 或 pageUrl');
+          // Check the item before going to the network.
+          if (!deps.edits.findObjectById(await readFile(safeJoin(tripDir, file), 'utf8'), itemId)) bad(`找不到 id 為「${itemId}」的項目`);
+          const { userAgentFor } = await import('./cli/osm.ts');
+          let web: import('./cli/photo-service.ts').WebPhoto;
+          try {
+            web = await svc.fetchWebPhoto({ userAgent: userAgentFor(deps.root), ...(deps.safe ?? {}) }, { ...(imageUrl ? { imageUrl } : {}), ...(pageUrl ? { pageUrl } : {}) });
+          } catch (e) {
+            if (e instanceof svc.PhotoError) return { status: 422, json: { ok: false, error: e.message } };
+            throw e;
+          }
+          const r = await svc.addPhotoBytes(pdeps, { tripId, file, itemId, bytes: web.bytes, web: true, source: { url: web.sourceUrl, label }, ...(caption !== undefined ? { caption } : {}) });
+          return { status: 200, json: { ok: true, ...r, imageUrl: web.imageUrl } };
+        } catch (e) {
+          if (e instanceof svc.PhotoError) bad(e.message);
+          throw e;
+        }
+      }
       case 'cover': {
         // The viewer shrinks the photo to a JPEG first, so only a (small) JPEG is accepted: trips/<id>/cover.jpg.
         const data = b.dataBase64;
@@ -1074,6 +1137,31 @@ export function foodIdOfPath(root: string, file: string): string | undefined {
   return rel.length === 2 && rel[1] === 'food.json' && TRIP_ID_RE.test(rel[0]!) ? rel[0] : undefined;
 }
 
+const PHOTO_MIME: Record<string, string> = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+
+/**
+ * `/trips/<id>/photos/<name>` (an item's photos, see cli/photo-service.ts): the file to serve, null for a request under a photos
+ * folder that must get a 404 (a bad name, `..`, an encoded character, the folder itself, a symlink out), or undefined when the URL
+ * is not a photo request at all (Vite handles it as before).
+ */
+export function photoRequest(root: string, rawUrl: string | undefined): { file: string; mime: string } | null | undefined {
+  const url = (rawUrl ?? '').split(/[?#]/)[0]!;
+  const parts = url.split('/');
+  if (parts[1] !== 'trips' || parts[3] !== 'photos') return undefined;
+  if (parts.length !== 5 || !TRIP_ID_RE.test(parts[2] ?? '') || url.includes('%') || url.includes('\\')) return null;
+  const rel = `photos/${parts[4]}`;
+  if (!PHOTO_FILE_RE.test(rel) || rel.includes('..')) return null;
+  const dir = path.join(path.resolve(root, 'trips'), parts[2]!, 'photos');
+  try {
+    const real = realpathSync(path.join(dir, parts[4]!));
+    const relReal = path.relative(realpathSync(dir), real);
+    if (relReal === '' || relReal.startsWith('..') || path.isAbsolute(relReal) || !statSync(real).isFile()) return null;
+    return { file: real, mime: PHOTO_MIME[path.extname(real).slice(1)]! };
+  } catch {
+    return null;
+  }
+}
+
 export default function tripcodePlugin(): Plugin {
   return {
     name: 'tripcode',
@@ -1089,6 +1177,22 @@ export default function tripcodePlugin(): Plugin {
       // One undo history per dev server: it lives (and dies) with this process, like an editor's.
       let historyPromise: Promise<EditHistory> | undefined;
       const loadHistory = () => (historyPromise ??= import('./src/core/history.ts').then((m) => new m.EditHistory()));
+
+      // An item's photos: only names that match the photo rule, never a listing; nosniff so a file is only ever an image.
+      server.middlewares.use((req, res, next) => {
+        if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+        const hit = photoRequest(root, req.url);
+        if (hit === undefined) return next();
+        const denied = guardRequest(req.headers, { allowedHosts, requireJson: false });
+        if (denied) return send(res, denied.status, { ok: false, error: denied.error });
+        if (!hit) {
+          res.statusCode = 404;
+          return res.end();
+        }
+        res.writeHead(200, { 'content-type': hit.mime, 'cache-control': 'private, max-age=3600', 'x-content-type-options': 'nosniff' });
+        if (req.method === 'HEAD') return res.end();
+        createReadStream(hit.file).on('error', () => res.destroy()).pipe(res);
+      });
 
       server.middlewares.use('/__tripcode', async (req, res) => {
         const endpoint = (req.url ?? '').split('?')[0]!.replace(/^\/+|\/+$/g, '');

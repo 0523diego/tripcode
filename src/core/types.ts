@@ -55,6 +55,20 @@ export interface Attachment {
   kind?: 'transport' | 'entry' | 'booking' | 'other';
 }
 
+/**
+ * A picture of the place or route, shown in the item's detail. Files live under trips/<id>/photos/ (gitignored: personal
+ * pictures and other people's copyrighted ones), named from a hash of the bytes. A picture saved from the web keeps the page it
+ * came from. Decoration only: a photo is never evidence about snow, opening or crowds, and nothing about it is rated.
+ */
+export interface Photo {
+  /** Relative to the trip folder: "photos/<name>.jpg" (see src/core/photos.ts for the exact rule). */
+  file: string;
+  /** What it shows, one line, e.g. 「Latemar 步道終點的湖（冬季照片）」. */
+  caption?: string;
+  /** Where a web picture came from: the https page and a short label, e.g. 「Eggental 官方路線頁」. */
+  source?: { url: string; label: string };
+}
+
 /** Whether a place or ticket has to be bought or reserved ahead. 'unknown' = nobody has looked yet. */
 export type BookingNeed = 'required' | 'recommended' | 'none' | 'unknown';
 export type BookingStatus = 'todo' | 'booked' | 'not-needed';
@@ -118,6 +132,8 @@ interface ItemBase {
   hours?: Sourced<OpeningHours>;
   /** Tickets and booking files for this item. */
   attachments?: Attachment[];
+  /** Pictures of the place or route (uploaded by the user, or saved from an official page with its source). */
+  photos?: Photo[];
   /** What has to be bought or reserved for this, and its status. Absent = nobody has looked. */
   booking?: Booking;
 }

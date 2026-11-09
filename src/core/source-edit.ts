@@ -5,7 +5,8 @@
 // code / string / comment so that braces inside '...', "...", `...` (with ${} nesting) and
 // comments never confuse brace matching. Regex literals are not recognised (trip files do not use them).
 
-import type { Attachment, Candidate, CandidateStatus } from './types.ts';
+import type { Attachment, Candidate, CandidateStatus, Photo } from './types.ts';
+import { parsePhoto } from './photos.ts';
 
 export type CommentAnchor = 'item' | 'gap' | 'leg' | 'day';
 export type EditableField = 'title' | 'start' | 'end' | 'flightNo' | 'bookingRef' | 'note';
@@ -547,34 +548,33 @@ function renderAttachment(a: Attachment): string {
 
 const ATTACHMENT_KINDS: readonly string[] = ['transport', 'entry', 'booking', 'other'];
 
-/** Append an Attachment to the item with the given id, creating `attachments: [...]` if absent. */
-export function addAttachment(src: string, itemId: string, attachment: Attachment): string {
-  if (typeof attachment.file !== 'string' || attachment.file === '') throw new Error('附件需要檔名');
-  if (typeof attachment.label !== 'string' || attachment.label.trim() === '') throw new Error('附件需要標籤');
-  if (attachment.kind !== undefined && !ATTACHMENT_KINDS.includes(attachment.kind)) throw new Error(`無效的附件類型：${String(attachment.kind)}`);
+/**
+ * Append the rendered `elem` to the item's `key: [...]` array (attachments, photos), creating the property when absent.
+ * `file` is the element's file name, used to refuse a duplicate.
+ */
+function appendToItemList(src: string, itemId: string, key: string, elem: string, file: string, duplicate: string): string {
   const hit = locate(src, 'id', itemId);
   if (!hit) throw new Error(`找不到 id 為「${itemId}」的物件`);
   const props = listProps(src, hit.k, hit.start, hit.end);
-  const existing = props.find((p) => p.key === 'attachments');
-  const elem = renderAttachment(attachment);
-  if (!existing) return editProp(src, 'id', itemId, 'attachments', `[${elem}]`);
-  if (src.charAt(existing.valueStart) !== '[') throw new Error('attachments 不是陣列字面值，無法自動加入');
+  const existing = props.find((p) => p.key === key);
+  if (!existing) return editProp(src, 'id', itemId, key, `[${elem}]`);
+  if (src.charAt(existing.valueStart) !== '[') throw new Error(`${key} 不是陣列字面值，無法自動加入`);
   const arrEnd = matchBracket(src, hit.k, existing.valueStart);
-  if (arrEnd > 0 && src.slice(existing.valueStart, arrEnd).includes(quote(attachment.file))) {
-    throw new Error(`附件「${attachment.file}」已存在於這個項目`);
-  }
+  if (arrEnd > 0 && src.slice(existing.valueStart, arrEnd).includes(quote(file))) throw new Error(duplicate);
   const keyLine = lineStartOf(src, existing.keyStart);
   const base = blank(src, hit.k, keyLine, existing.keyStart) ? indentOf(src, keyLine) : '  ';
-  return appendToArray(src, hit.k, existing.valueStart, `${base}  ${elem}`, base, false);
+  // A one-line array stays one line: the element goes in after ", " without the indentation a multi-line array needs.
+  const oneLine = arrEnd > 0 && !src.slice(existing.valueStart, arrEnd).includes('\n');
+  return appendToArray(src, hit.k, existing.valueStart, oneLine ? elem : `${base}  ${elem}`, base, false);
 }
 
-/** Remove the attachment whose `file` equals `file` from the item; drops `attachments` when it becomes empty. */
-export function removeAttachment(src: string, itemId: string, file: string): string {
+/** Remove the element whose `file` equals `file` from the item's `key: [...]` array; drops the property when it becomes empty. */
+function removeFromItemList(src: string, itemId: string, key: string, file: string, msg: { none: string; missing: string }): string {
   const hit = locate(src, 'id', itemId);
   if (!hit) throw new Error(`找不到 id 為「${itemId}」的物件`);
   const { k } = hit;
-  const existing = listProps(src, k, hit.start, hit.end).find((p) => p.key === 'attachments');
-  if (!existing || src.charAt(existing.valueStart) !== '[') throw new Error(`項目「${itemId}」沒有附件`);
+  const existing = listProps(src, k, hit.start, hit.end).find((p) => p.key === key);
+  if (!existing || src.charAt(existing.valueStart) !== '[') throw new Error(msg.none);
   const open = existing.valueStart;
   const arrEnd = matchBracket(src, k, open);
   if (arrEnd < 0) throw new Error('陣列沒有結尾的 ]');
@@ -590,8 +590,8 @@ export function removeAttachment(src: string, itemId: string, file: string): str
     i = end - 1;
   }
   const target = elems.find((e) => e.match);
-  if (!target) throw new Error(`項目「${itemId}」沒有附件「${file}」`);
-  if (elems.length === 1) return editProp(src, 'id', itemId, 'attachments', null);
+  if (!target) throw new Error(msg.missing);
+  if (elems.length === 1) return editProp(src, 'id', itemId, key, null);
 
   const next = skipTrivia(src, k, target.end, arrEnd - 1);
   const hasComma = src.charAt(next) === ',' && kindAt(k, next) === CODE;
@@ -614,6 +614,36 @@ export function removeAttachment(src: string, itemId: string, file: string): str
   while (b > open && (kindAt(k, b) === COMMENT || isWs(src.charAt(b)))) b--;
   const from = src.charAt(b) === ',' && kindAt(k, b) === CODE ? b : target.start;
   return src.slice(0, from) + src.slice(target.end);
+}
+
+/** Append an Attachment to the item with the given id, creating `attachments: [...]` if absent. */
+export function addAttachment(src: string, itemId: string, attachment: Attachment): string {
+  if (typeof attachment.file !== 'string' || attachment.file === '') throw new Error('附件需要檔名');
+  if (typeof attachment.label !== 'string' || attachment.label.trim() === '') throw new Error('附件需要標籤');
+  if (attachment.kind !== undefined && !ATTACHMENT_KINDS.includes(attachment.kind)) throw new Error(`無效的附件類型：${String(attachment.kind)}`);
+  return appendToItemList(src, itemId, 'attachments', renderAttachment(attachment), attachment.file, `附件「${attachment.file}」已存在於這個項目`);
+}
+
+/** Remove the attachment whose `file` equals `file` from the item; drops `attachments` when it becomes empty. */
+export function removeAttachment(src: string, itemId: string, file: string): string {
+  return removeFromItemList(src, itemId, 'attachments', file, { none: `項目「${itemId}」沒有附件`, missing: `項目「${itemId}」沒有附件「${file}」` });
+}
+
+function renderPhoto(p: Photo): string {
+  const caption = p.caption !== undefined ? `, caption: ${quote(p.caption)}` : '';
+  const source = p.source ? `, source: { url: ${quote(p.source.url)}, label: ${quote(p.source.label)} }` : '';
+  return `{ file: ${quote(p.file)}${caption}${source} }`;
+}
+
+/** Append a Photo to the item with the given id, creating `photos: [...]` if absent. The photo must pass `parsePhoto`. */
+export function addPhoto(src: string, itemId: string, photo: Photo): string {
+  const p = parsePhoto(photo);
+  return appendToItemList(src, itemId, 'photos', renderPhoto(p), p.file, `照片「${p.file}」已在這個項目`);
+}
+
+/** Remove the photo whose `file` equals `file` from the item; drops `photos` when it becomes empty. */
+export function removePhoto(src: string, itemId: string, file: string): string {
+  return removeFromItemList(src, itemId, 'photos', file, { none: `項目「${itemId}」沒有照片`, missing: `項目「${itemId}」沒有照片「${file}」` });
 }
 
 // ---- v1.2: reorder and schedule ------------------------------------------------

@@ -127,9 +127,9 @@ export async function foodCommand(ctx: CliContext, argv: string[]): Promise<numb
 }
 
 /** What the network-facing operations need from the CLI context (tests may add a fast throttle as `foodThrottle`). */
-// Photos come through the public-web guard (cli/safe-fetch.ts). When a test swaps the context's fetch for a fake, the photos go
-// through that fake too (and the address check is skipped), so nothing leaves the test.
-const deps = (ctx: CliContext) => ({ root: ctx.root, fetch: ctx.fetch, now: ctx.now, loadTrip: ctx.loadTrip, ...(ctx.fetch === globalThis.fetch ? {} : { safe: { fetch: ctx.fetch as never, lookup: async () => ['93.184.216.34'] } }), ...((ctx as { foodThrottle?: Throttle }).foodThrottle ? { throttle: (ctx as { foodThrottle?: Throttle }).foodThrottle } : {}) });
+// Photos come through the public-web guard (cli/safe-fetch.ts). Only a test that sets `fakePublicWeb` on the context sends them
+// through its fake fetch (and skips the address check); the real CLI context always uses the guard with real address checks.
+const deps = (ctx: CliContext) => ({ root: ctx.root, fetch: ctx.fetch, now: ctx.now, loadTrip: ctx.loadTrip, ...((ctx as { fakePublicWeb?: boolean }).fakePublicWeb === true ? { safe: { fetch: ctx.fetch as never, lookup: async () => ['93.184.216.34'] } } : {}), ...((ctx as { foodThrottle?: Throttle }).foodThrottle ? { throttle: (ctx as { foodThrottle?: Throttle }).foodThrottle } : {}) });
 
 async function run(ctx: CliContext, a: Args, cmd: string, sub: string | undefined): Promise<number> {
   const now = () => ctx.now().toISOString().replace(/\.\d+Z$/, 'Z');

@@ -149,6 +149,20 @@
 .it-main {
   min-width: 0;
 }
+/* An item with photos: the first one, small, at the end of the row (the full set is in the detail panel). */
+.it.has-photo {
+  grid-template-columns: var(--tcol) 26px minmax(0, 1fr) 48px;
+}
+.it-thumb {
+  justify-self: end;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  object-fit: cover;
+  pointer-events: none;
+}
 .it-title {
   display: block;
   font-weight: 550;

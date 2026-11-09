@@ -13,6 +13,7 @@ export function systemPromptAppend(askInstruction: string): string {
     '使用者可以貼圖（機票或住宿的報價截圖、訂位確認、地圖、景點照片）：圖片檔在 trips/<id>/attachments/，用 Read 工具看。從截圖讀到的價格只能當「使用者提供的報價」，註明截圖裡的日期與來源，看不清楚或沒有的欄位就說看不到，不要補。圖片會被送給 Claude 分析，不要要求使用者貼護照、卡號等證件。',
     '回覆支援 Markdown 表格與圖片：比較多個選項（機票、住宿、方案）時用表格。要給使用者看圖表或示意圖時，自己畫成 SVG 存到 trips/<id>/attachments/（檔名用英文小寫與連字號），再用 ![說明](trips/<id>/attachments/檔名.svg) 顯示；只能顯示 trips/ 底下的圖片檔，外部網址的圖片面板不會自動載入，需要時給連結。',
     '使用者給你巴士、火車、船、纜車或飛機的票（截圖、PDF 或口述）：一張票要寫三樣，不是一樣。這段交通項目本身的 loc 是出發的車站或機場（票上的站名，不是城市中心），緊接著加一個抵達站的 poi 項目（有 loc、start 是抵達時間）。少一端，地圖就只標出一頭。存檔後跑 check，沒有 leg-endpoints 警告才能說兩端都標好了；細節看 trip-authoring 的「A ticket has two ends」。',
+    '推薦健行路線、步道或景點時，從你讀過的官方網頁（觀光局、營運者、景點自己的網站）存 1–3 張照片：`npm run tripcode -- photo add <tripId> <itemId> --page <網址> --label "<來源>" --caption "<拍的是什麼>"`，照片季節可能和行程不同就在說明寫（例如「冬季照片」）；不用圖庫網站或沒讀過的網頁，不寫評分；照片只是參考，不能拿來判斷積雪、有沒有開或人多不多。',
     askInstruction,
   ].join(' ');
 }

@@ -18,6 +18,8 @@ interface EditApi {
 }
 
 interface Props {
+  /** For the photo thumbnail of items that have photos (`/trips/<id>/photos/…`). Omitted = no thumbnails. */
+  tripId?: string;
   trip: Trip;
   dayIdx: number | null;
   selection: Selection | null;
@@ -148,7 +150,9 @@ function DayBlock({
   api,
   edit,
   target,
+  tripId,
 }: {
+  tripId?: string;
   day: Day;
   dayIdx: number;
   lodging: DayLodging;
@@ -236,7 +240,8 @@ function DayBlock({
     } else {
       // While a field is being edited the row is a <div>: an <input> cannot live inside a <button>.
       const editingHere = edit?.editing?.id === it.id ? edit.editing.field : null;
-      const rowClass = `it${it.locked ? ' locked' : ''}${timeOf(it) ? '' : ' untimed'}${selected === key ? ' sel' : ''}${editingHere ? ' editing' : ''}`;
+      const photo = tripId ? it.photos?.[0] : undefined;
+      const rowClass = `it${it.locked ? ' locked' : ''}${timeOf(it) ? '' : ' untimed'}${selected === key ? ' sel' : ''}${editingHere ? ' editing' : ''}${photo ? ' has-photo' : ''}`;
       const inner = (
         <>
           <time
@@ -264,6 +269,8 @@ function DayBlock({
               {!hasLoc(it) && <em className="tag">無座標</em>}
             </span>
           </span>
+          {/* The first photo, small: decorative (the title is right next to it), the full set is in the detail. */}
+          {photo && tripId && <img className="it-thumb" src={`/trips/${tripId}/${photo.file}`} alt="" aria-hidden="true" loading="lazy" decoding="async" draggable={false} />}
         </>
       );
       rows.push(
@@ -374,7 +381,7 @@ function DayBlock({
   );
 }
 
-export function Itinerary({ trip, dayIdx, selection, onSelect, onEditField, onMove, onSchedule, onColor, readOnly }: Props) {
+export function Itinerary({ tripId, trip, dayIdx, selection, onSelect, onEditField, onMove, onSchedule, onColor, readOnly }: Props) {
   const root = useRef<HTMLDivElement | null>(null);
   const key = selKey(selection);
   const [editing, setEditing] = useState<EditApi['editing']>(null);
@@ -512,6 +519,7 @@ export function Itinerary({ trip, dayIdx, selection, onSelect, onEditField, onMo
             api={api}
             edit={edit}
             target={target}
+            tripId={tripId}
           />
         ) : null,
       )}

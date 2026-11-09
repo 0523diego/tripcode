@@ -18,6 +18,8 @@ function setup() {
     root,
     env: {},
     fetch: async () => new Response('{}'),
+    // The context's fetch is a fake here, so photo downloads go through it too (and skip the real address check).
+    ...({ fakePublicWeb: true } as object),
     stdout: (s) => out.push(s),
     stderr: (s) => err.push(s),
     now: () => new Date('2026-11-07T12:00:00Z'),
