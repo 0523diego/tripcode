@@ -134,7 +134,8 @@ export interface NearOutput {
   }[];
 }
 
-export async function nearForTrip(deps: FoodDeps, tripId: string, args: NearArgs): Promise<NearOutput> {
+/** Where and when a meal is, from the trip: the day, the window, the stop to eat near, and the city (used by `food near` and `food suggest`). */
+export async function mealContext(deps: FoodDeps, tripId: string, args: { file?: string | undefined; date: string; slot: 'lunch' | 'dinner'; anchor?: string | undefined }) {
   const tripPath = path.join(deps.root, 'trips', tripId, args.file ?? 'trip.ts');
   const trip = await deps.loadTrip(tripPath).catch(() => {
     throw new CliError(`找不到或無法載入 trips/${tripId}/${args.file ?? 'trip.ts'}`);
@@ -154,6 +155,11 @@ export async function nearForTrip(deps: FoodDeps, tripId: string, args: NearArgs
   const food = await readFood(deps.root, tripId);
   const cities = [...new Set(food.dishes.map((d) => d.city))];
   const city = day.city ?? (cities.length === 1 ? cities[0]! : undefined);
+  return { trip, day, gap, window, anchor: { title: anchor.title, loc: anchor.loc }, food, city };
+}
+
+export async function nearForTrip(deps: FoodDeps, tripId: string, args: NearArgs): Promise<NearOutput> {
+  const { trip, day, window, anchor, food, city } = await mealContext(deps, tripId, args);
   const dishes = args.dishes ? food.dishes.filter((d) => args.dishes!.includes(d.id)) : city ? visibleDishes(food, city, args.slot).shown.slice(0, 6) : [];
   const maxWalkMin = food.taste.maxWalkMin ?? 10;
   const radius = args.radius ?? Math.min(1500, Math.max(300, Math.round(((maxWalkMin * 80) / 1.3) * 1.1)));

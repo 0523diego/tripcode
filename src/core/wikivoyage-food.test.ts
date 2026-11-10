@@ -84,3 +84,9 @@ test('{{eat}} listings: name, alternative name, coordinates and the editors\' la
   assert.deepEqual(parseEatListings('{{eat | name=No place | lat= | long= }} {{eat | name=Out | lat=99 | long=1}} {{eat | name=Fine | alt=好店 | lat=1.5 | long=2.5 | lastedit=2024-02-03 | content=x }}'), [{ name: 'Fine', alt: '好店', lat: 1.5, lng: 2.5, lastedit: '2024-02-03' }]);
   assert.deepEqual(parseEatListings(''), []);
 });
+
+test('parseEatDishes: chains and stray small words from a page are not dishes', () => {
+  const wikitext = "== Eat ==\n* McDonald's\n* Burger King\n* and\n* '''Risotto alla milanese''' - saffron rice\n";
+  assert.deepEqual(parseEatDishes(wikitext).map((d) => d.name), ['Risotto alla milanese']);
+  assert.deepEqual(parseEatDishes("== Eat ==\n* McDonald's\n* Burger King\n"), [], 'nothing left: the caller then asks the AI for a list instead of saving fast food');
+});

@@ -14,6 +14,19 @@ export interface Badge {
 
 export const TIER_LABEL: Record<NearResult['tier'], string> = { safe: '可以放心', likely: '大致可以', check: '要自己確認' };
 
+/** A place found on the web (`food suggest`) is proven by a page, not a map entry: the page's host, and whether the page was read and carried the name. */
+export function webProof(r: Pick<NearResult, 'evidence'>): { host: string; checked: boolean } | undefined {
+  const e = (r.evidence as { kind?: string; claim?: string; source?: string; confidence?: string }[]).find((x) => x.claim === 'exists' && (x.kind === 'web' || x.kind === 'michelin') && typeof x.source === 'string' && /^https:\/\//.test(x.source));
+  if (!e) return undefined;
+  let host = e.source!;
+  try {
+    host = new URL(e.source!).hostname.replace(/^www\./, '');
+  } catch {
+    /* keep the raw text */
+  }
+  return { host, checked: e.confidence !== 'reference' };
+}
+
 /** What the drawer says about a dish's source. */
 export function dishBadge(dish: Dish): Badge {
   if (aiOnly(dish)) return { tone: 'warn', text: 'AI 的印象，尚未查證' };
@@ -26,10 +39,12 @@ export function dishBadge(dish: Dish): Badge {
 
 /** The badges under a place: existence, opening hours at the meal, how the dish was matched, and the warnings. Nothing about a rating: there is none. */
 export function placeBadges(r: NearResult, generalMode: boolean, opts: { skipDishBadge?: boolean } = {}): Badge[] {
-  const out: Badge[] = [{ tone: 'good', text: '已在地圖確認存在（OpenStreetMap）' }];
+  const web = webProof(r);
+  const out: Badge[] = [web ? (web.checked ? { tone: 'good', text: `網頁寫到這家店（${web.host}）` } : { tone: 'warn', text: `來源網頁沒能自動核對（${web.host}），要自己確認` }) : { tone: 'good', text: '已在地圖確認存在（OpenStreetMap）' }];
   const guide = r.evidence.find((e) => (e as { kind?: string }).kind === 'guide-wikivoyage') as { detail?: string } | undefined;
   if (guide) out.push({ tone: 'good', text: guide.detail ?? 'Wikivoyage 指南推薦' });
-  if (r.open === 'open') out.push({ tone: 'good', text: `用餐時間有營業${r.hours ? `（OSM：${r.hours}）` : ''}` });
+  if (web) out.push({ tone: 'warn', text: r.hours ? `網頁寫的營業時間：${r.hours}（出發前到 Google 地圖確認）` : '營業時間沒查到，出發前到 Google 地圖確認' });
+  else if (r.open === 'open') out.push({ tone: 'good', text: `用餐時間有營業${r.hours ? `（OSM：${r.hours}）` : ''}` });
   else out.push({ tone: 'warn', text: r.hours ? `營業時間格式看不懂（OSM：${r.hours}），先查再去` : '營業時間沒寫，先查再去' });
   if (opts.skipDishBadge) {
     // The board has no dish match to show.
@@ -103,7 +118,11 @@ const day = (s: Sourced<unknown>) => s.fetchedAt.slice(0, 10);
 /** The facts a meal's `checks` hold, each with where and when. A claim with no source is not a line. */
 export function proofLines(checks: MealChecks | undefined): ProofLine[] {
   const out: ProofLine[] = [];
-  if (checks?.exists?.value === true && checks.exists.source) out.push({ text: `已在地圖確認存在（${where(checks.exists.source)}，${day(checks.exists)}）` });
+  if (checks?.exists?.value === true && checks.exists.source) {
+    // A map entry ("osm:node/1") or a page that was read and carried the name (an https address, shown as a link).
+    if (/^https:\/\//.test(checks.exists.source)) out.push({ text: `網頁寫到這家店（${where(checks.exists.source)}，${day(checks.exists)}）`, href: checks.exists.source });
+    else out.push({ text: `已在地圖確認存在（${where(checks.exists.source)}，${day(checks.exists)}）` });
+  }
   if (checks?.openAtSlot?.value === true && checks.openAtSlot.source) out.push({ text: `用餐時間有營業（${where(checks.openAtSlot.source)}，${day(checks.openAtSlot)}）` });
   for (const r of checks?.recommendedBy ?? []) if (/^https:\/\//.test(r.source)) out.push({ text: `${r.value}（${where(r.source)}，${day(r)}）`, href: r.source });
   return out;
@@ -153,12 +172,47 @@ export function boardResults(food: FoodFile, batch: ShortlistBatch, tripId: stri
 
 /** The few chips a card shows up front; the sources and dates behind them are in `placeBadges` (the card's details). */
 export function chipBadges(r: NearResult): Badge[] {
-  const out: Badge[] = [{ tone: 'good', text: '地圖確認有這家店' }];
+  const web = webProof(r);
+  const out: Badge[] = [web ? (web.checked ? { tone: 'good', text: '網頁寫到這家店' } : { tone: 'warn', text: '來源網頁沒能核對' }) : { tone: 'good', text: '地圖確認有這家店' }];
   const guide = r.evidence.some((e) => (e as { kind?: string }).kind === 'guide-wikivoyage');
   if (guide) out.push({ tone: 'good', text: '旅遊指南推薦' });
-  out.push(r.open === 'open' ? { tone: 'good', text: '用餐時間有營業' } : { tone: 'warn', text: '營業時間要先確認' });
+  out.push(!web && r.open === 'open' ? { tone: 'good', text: '用餐時間有營業' } : { tone: 'warn', text: '營業時間要先確認' });
   if (r.flags.includes('fast-food')) out.push({ tone: 'warn', text: '快餐店' });
   else if (r.flags.includes('chain')) out.push({ tone: 'warn', text: '連鎖店' });
   if (r.flags.includes('near-landmark')) out.push({ tone: 'neutral', text: '在景點旁，偏觀光' });
   return out;
+}
+
+// ---------- asking the AI ----------
+
+export interface AskInput {
+  tripId: string;
+  date: string;
+  slot: 'lunch' | 'dinner';
+  window: { from: string; to: string };
+  anchorKey: string;
+  anchorTitle: string | undefined;
+  city: string | undefined;
+  /** The dishes the travellers ticked; empty means 「都可以」: the AI picks what suits the meal. */
+  wanted: { id: string; nameZh: string; nameLocal: string }[];
+  avoid: string[];
+}
+
+/** The message the 「請 AI 找店」 button sends. It names the skill, the meal, and the one way to hand the answer back, so the reply is always the same shape. */
+export function askPrompt(a: AskInput): string {
+  const slot = a.slot === 'lunch' ? '午餐' : '晚餐';
+  const dishes = a.wanted.length > 0 ? `想吃：${a.wanted.map((d) => `${d.nameZh}（${d.nameLocal}，id ${d.id}）`).join('、')}。` : '想吃什麼都可以：你從這座城市的在地菜裡挑最適合這一餐的，不要全部都推。';
+  return [
+    `照 fill-meals 技能，幫我找 ${a.date} 的${slot}（${a.window.from}–${a.window.to}）去哪吃（trip ${a.tripId}${a.city ? `，${a.city}` : ''}；在「${a.anchorTitle ?? '前後的地點'}」附近，--anchor ${a.anchorKey}）。`,
+    dishes,
+    a.avoid.length > 0 ? `不吃：${a.avoid.join('、')}。` : '',
+    '上網查真的有在營業、有人推薦的店（讀 1–2 個網頁再下結論），最多 3 家；交答案只能用 `food suggest`（不要在聊天裡貼店名清單或表格），找不到就老實說找不到。',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+/** The message for 「請 AI 列出必吃」: the city's dishes, each with the pages it came from, written through `food dish add`. */
+export function listDishesPrompt(tripId: string, city: string): string {
+  return `照 fill-meals 技能，先決定「${city}」要吃什麼（trip ${tripId}）：先跑 food show 看已有的菜；沒有就上網查（讀 2 個以上網頁：旅遊指南、當地美食誌、Wikivoyage 分區頁），挑 6–10 道這座城市真正的在地菜（不要連鎖速食、不要什麼城市都有的），每道用 food dish add 存：中文名、當地名稱、一句你自己的話寫的理由、tags、match，sources 附你讀過的網頁（kind: web，要有 https 網址）。沒讀過網頁、只是你的印象的菜才標 kind: ai。不要在聊天裡貼清單，存好就說「必吃清單好了，回抽屜勾選」。`;
 }

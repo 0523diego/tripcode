@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Dish, FoodFile } from '../../core/food-types.ts';
 import type { NearResult } from './food-view.ts';
-import { boardResults, dishBadge, guessWikivoyagePage, photoFromFood, placeBadges, proofLines, reasonText, tagLabels } from './food-view.ts';
+import { askPrompt, boardResults, chipBadges, dishBadge, guessWikivoyagePage, listDishesPrompt, photoFromFood, placeBadges, proofLines, reasonText, tagLabels } from './food-view.ts';
 import { emptyFood } from '../../core/food.ts';
 
 const dish = (sources: Dish['sources']): Dish => ({ id: 'x', city: '羅馬', nameZh: 'x', nameLocal: 'x', why: 'w', tags: [], match: { names: ['x'] }, sources });
@@ -54,6 +54,7 @@ test('proof lines: what was checked about the chosen place, each with where and 
     { text: '用餐時間有營業（OpenStreetMap，2026-11-07）' },
     { text: '文章推薦（example.com，2026-11-07）', href: 'https://www.example.com/guide' },
   ]);
+  assert.deepEqual(proofLines({ exists: s(true, 'https://guide.example.com/trattoria') }), [{ text: '網頁寫到這家店（guide.example.com，2026-11-07）', href: 'https://guide.example.com/trattoria' }], 'a place proven by a page says so, with the link');
   assert.deepEqual(proofLines(undefined), []);
   assert.deepEqual(proofLines({ exists: s(true, '') }), [], 'a claim with no source is not shown');
   assert.deepEqual(proofLines({ recommendedBy: [s('x', 'not a url')] }), []);
@@ -95,4 +96,33 @@ test('a drawer result gets the photo and introduction that arrived after its sea
 test('the board does not claim a dish match it does not have', () => {
   const r = boardResults(guide(), guide().shortlist[0]!, 'paris')[0]!;
   assert.equal(placeBadges(r, false, { skipDishBadge: true }).some((b) => /菜|店名就是|無法確認有沒有這道/.test(b.text)), false);
+});
+
+test('the AI asks: the meal, the stop, the dishes or 「都可以」, what to avoid, and the one way to answer', () => {
+  const base = { tripId: 'italy', date: '2026-11-21', slot: 'dinner' as const, window: { from: '18:00', to: '19:30' }, anchorKey: 'prev', anchorTitle: 'Teatro alla Scala', city: '米蘭', avoid: ['豬'] };
+  const picked = askPrompt({ ...base, wanted: [{ id: 'risotto-milanese', nameZh: '米蘭燉飯', nameLocal: 'Risotto alla milanese' }] });
+  assert.match(picked, /fill-meals/);
+  assert.match(picked, /2026-11-21 的晚餐（18:00–19:30）/);
+  assert.match(picked, /--anchor prev/);
+  assert.match(picked, /想吃：米蘭燉飯（Risotto alla milanese，id risotto-milanese）/);
+  assert.match(picked, /不吃：豬/);
+  assert.match(picked, /food suggest/);
+  assert.match(picked, /最多 3 家/);
+  const any = askPrompt({ ...base, wanted: [], avoid: [] });
+  assert.match(any, /什麼都可以/);
+  assert.equal(/不吃：/.test(any), false, 'nothing to avoid, nothing said');
+  assert.match(listDishesPrompt('italy', '米蘭'), /food dish add/);
+  assert.match(listDishesPrompt('italy', '米蘭'), /米蘭/);
+});
+
+test('a place found on the web says so, with its page, and does not claim a map or opening hours it never checked', () => {
+  const web = result({ key: 'web-abc123def456', open: 'unknown', hours: '週二至週日 19:00–23:00', evidence: [{ kind: 'web', claim: 'exists', source: 'https://www.example.com/trattoria', confidence: 'recent', detail: '網頁裡寫到這家店' }] as never });
+  const texts = placeBadges(web, false, { skipDishBadge: true }).map((b) => b.text);
+  assert.equal(texts[0], '網頁寫到這家店（example.com）');
+  assert.ok(texts.some((t) => t.startsWith('網頁寫的營業時間：週二至週日 19:00–23:00')));
+  assert.equal(texts.some((t) => /OpenStreetMap|用餐時間有營業/.test(t)), false);
+  assert.deepEqual(chipBadges(web).map((b) => b.text).slice(0, 2), ['網頁寫到這家店', '營業時間要先確認']);
+  const unread = result({ open: 'unknown', evidence: [{ kind: 'web', claim: 'exists', source: 'https://www.example.com/trattoria', confidence: 'reference' }] as never });
+  assert.equal(chipBadges(unread)[0]!.text, '來源網頁沒能核對');
+  assert.equal(chipBadges(result())[0]!.text, '地圖確認有這家店', 'a map place is unchanged');
 });

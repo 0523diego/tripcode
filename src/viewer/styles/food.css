@@ -559,3 +559,16 @@
   grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
   gap: 14px;
 }
+
+/* 這餐吃什麼 → 請 AI 找店: the two ways to ask, and the small print under them. */
+.fd-ask {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+.fd-note-small {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}

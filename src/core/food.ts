@@ -509,8 +509,13 @@ export function mealFromPlace(raw: unknown, opts: { slot?: unknown; now: string 
   // request, is not proof. A claim that the place is closed rules it out.
   if (evidence.some((e) => e.claim === 'closed-at-slot' || e.claim === 'permanently-closed')) throw new FoodError('這家店的證據說它那時沒開或已歇業，不能加進行程');
   const mapKinds: Evidence['kind'][] = ['map-osm', 'map-google', 'user-link'];
-  const exists = evidence.find((e) => e.claim === 'exists' && mapKinds.includes(e.kind) && e.source === key);
-  if (!exists) throw new FoodError('只有在地圖上確認存在的店才能加進行程（這家沒有來自地圖、指向這家店的「存在」證據）');
+  // A place found on the map is proven by the map entry itself. A place the AI found on the web (key "web-…", made by
+  // `food suggest`) is proven by a page that was fetched and carries its name: an https address, kept in the checks with its date.
+  // A place the AI only remembers has neither, and cannot be chosen.
+  const exists =
+    evidence.find((e) => e.claim === 'exists' && mapKinds.includes(e.kind) && e.source === key) ??
+    (key.startsWith('web-') ? evidence.find((e) => e.claim === 'exists' && (e.kind === 'web' || e.kind === 'michelin') && /^https:\/\//.test(e.source)) : undefined);
+  if (!exists) throw new FoodError('只有在地圖上或網頁上確認存在的店才能加進行程（這家沒有指向這家店的「存在」證據）');
   const open = evidence.find((e) => e.claim === 'open-at-slot' && mapKinds.includes(e.kind) && e.source === key);
   // A recommendation needs a page to read; its one-line label may not carry a rating or a score.
   const recommended = evidence.filter((e) => e.claim === 'recommended' && /^https:\/\//.test(e.source) && ['web', 'michelin', 'guide-wikivoyage'].includes(e.kind) && !/[★☆]|\d\s*[.,]\s*\d|評分|分數|stars?/i.test(e.detail ?? ''));

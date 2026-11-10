@@ -114,6 +114,9 @@ function leadingName(line: string): { name: string; local?: string; rest: string
 const placeWords = /\b(area|district|street|station|market|road|neighbou?rhood|temple|park|castle)\b/i;
 
 /** Dish candidates in the text of an Eat section (or the part of it up to the first sub-section and any "specialties" ones). */
+/** Fast-food and coffee chains, and single small words: what a travel page names in passing is not a local dish. */
+const NOT_A_DISH = /^(mcdonald'?s|burger king|kfc|subway|starbucks|pizza hut|domino'?s|quick|wendy'?s|and|or|the|but|also|some|many|most|italy|food|restaurants?|cafes?|bars?)$/i;
+
 export function parseEatDishes(eatWikitext: string): DishCandidate[] {
   const sections = eatWikitext.split(/\n(?==== ?[^=])/);
   const wanted = sections.filter((s, i) => i === 0 || /^===\s*[^=\n]*(special|local|dish|regional|cuisine|food|try)[^=\n]*===/i.test(s));
@@ -122,7 +125,7 @@ export function parseEatDishes(eatWikitext: string): DishCandidate[] {
   const seen = new Set<string>();
   const add = (c: DishCandidate) => {
     const key = c.name.toLowerCase();
-    if (c.name.length < 2 || c.name.length > 40 || seen.has(key)) return;
+    if (c.name.length < 2 || c.name.length > 40 || seen.has(key) || NOT_A_DISH.test(c.name.trim())) return;
     seen.add(key);
     found.push(c);
   };

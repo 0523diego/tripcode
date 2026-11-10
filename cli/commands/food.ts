@@ -5,6 +5,7 @@ import path from 'node:path';
 import { CliError, checkFileName, checkTripId, printJson } from '../context.ts';
 import type { CliContext } from '../context.ts';
 import { guideForTrip, nearForTrip, photoForPlace } from '../food-service.ts';
+import { suggestForTrip } from '../food-suggest.ts';
 import { SafeFetchError } from '../safe-fetch.ts';
 import { readFood, updateFood } from '../food-store.ts';
 export { foodPath, readFood, updateFood, writeFood } from '../food-store.ts';
@@ -21,6 +22,9 @@ export const FOOD_USAGE = `用法：tripcode food <子指令>（預設輸出 JSO
   guide <tripId> --city 羅馬 --page Rome [--save]    從英文 Wikivoyage 的 Eat 段讀這座城市的在地菜（只讀菜名，附頁面連結與版本）；沒有 --save 只列出來看
   near <tripId> --date 2026-11-24 --slot lunch|dinner [--anchor prev|next|hotel|<itemId>] [--dish id,id] [--radius 600] [--limit 8] [--save [--no-photos]]
         這一餐附近真的存在、那個時段有開、店名或菜系對得上這道菜的店（OpenStreetMap，沒有評分）；--save 把結果和證據記進 food.json，畫面左邊的餐廳區會即時顯示，並自動抓前幾家官網的照片（--no-photos 不抓）
+  suggest <tripId> --date 2026-11-24 --slot lunch|dinner [--anchor prev|next|hotel|<itemId>] --json '[{店}, …]' [--file trip.ts] [--no-photos]
+        你上網查完之後交出「這一餐去哪吃」：最多 3 家，每家 {name, address, summary, order[], sources[https…]}，另可有 nameZh, dishes[菜的 id], price, watch, hours, website。
+        程式會：核對來源網頁真的寫到店名、用地名查座標、抓店家官網的照片，然後把卡片放到使用者畫面上。不收評分；店名在網頁找不到或查不到座標的店會被退回並說明原因
   dish add <tripId> --json '<Dish>' | --file path   新增或取代一道菜（--file 相對於專案根目錄）；每道菜都要有來源，AI 自己的印象標 {"kind":"ai"}
   dish rm <tripId> <dishId>
   evidence add <tripId> --place <key> --kind map-osm|map-google|guide-wikivoyage|web|michelin|user-link|ai-memory
@@ -39,7 +43,7 @@ interface Args {
 }
 
 const VALUE = new Set(['json', 'file', 'city', 'avoid-dish', 'avoid-tag', 'like-tag', 'diet', 'allergies', 'budget', 'queue', 'kids', 'walk', 'place', 'kind', 'claim', 'source', 'confidence', 'detail', 'reason', 'date', 'slot', 'anchor', 'dish', 'radius', 'provider', 'page', 'district', 'limit']);
-const BOOL = new Set(['pretty', 'save', 'help']);
+const BOOL = new Set(['pretty', 'save', 'help', 'no-photos']);
 
 function parse(argv: string[]): Args {
   const pos: string[] = [];
@@ -262,6 +266,19 @@ async function run(ctx: CliContext, a: Args, cmd: string, sub: string | undefine
         if (out.results.length === 0) lines.push('（沒有符合的店。可以加大 --radius，或換一道菜。）');
         lines.push('', `略過：${out.dropped.closed} 家那個時段沒開、${out.dropped.far} 家太遠、${out.dropped.rejected} 家你拒絕過、${out.dropped.noMatch} 家對不上菜`, out.note, '資料：© OpenStreetMap contributors (ODbL)');
         ctx.stdout(`${lines.join('\n')}\n`);
+      } else printJson(ctx, out);
+      return 0;
+    }
+    case 'suggest': {
+      const tripId = checkTripId(a.pos[1]);
+      const date = flag(a, 'date');
+      const slot = flag(a, 'slot');
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date) || (slot !== 'lunch' && slot !== 'dinner')) throw new CliError('用法：food suggest <tripId> --date YYYY-MM-DD --slot lunch|dinner --json \'[{店}]\'');
+      const places = await jsonArg(ctx, a);
+      const out = await suggestForTrip(deps(ctx), tripId, { file: flag(a, 'file') ? checkFileName(flag(a, 'file')) : undefined, date, slot, anchor: flag(a, 'anchor'), places, photos: a.flags['no-photos'] === true ? 'none' : 'wait' });
+      if (a.flags.pretty) {
+        const tier = { likely: '大致可以', check: '要自己確認' } as const;
+        ctx.stdout(`${[`${date} ${slot === 'lunch' ? '午餐' : '晚餐'}，在「${out.anchor.title}」附近，收了 ${out.saved.length} 家：`, ...out.saved.map((s, i) => `${i + 1}. ${s.name}  走 ${s.walkMin} 分 · ${s.distanceM} m  [${tier[s.tier]}] ${s.checked}${s.photo ? '，有照片' : '，沒有照片'}`), ...out.refused.map((r) => `✗ ${r.name}：${r.reason}`), '', out.note].join('\n')}\n`);
       } else printJson(ctx, out);
       return 0;
     }

@@ -455,7 +455,7 @@ export function MealSection({ gaps, trip, tripId, file, say, city, onAsk }: { ga
           </div>
         ))
       )}
-      <p className="of-note muted bk-hint">「找吃的」先決定想吃哪道在地菜，再列出附近真的存在、那個時段有開的店（OpenStreetMap，沒有評分；評分請在 Google 地圖看）。也可以自己在 Google 地圖挑好貼回來。</p>
+      <p className="of-note muted bk-hint">「找吃的」先決定想吃哪道在地菜（或「都可以」），再請 AI 上網讀網頁找最多 3 家，每家附它讀過的網頁（沒有評分；評分請在 Google 地圖看）。也可以自己在 Google 地圖挑好貼回來。</p>
       {open && <MealDrawer key={finding} gap={open} trip={trip} tripId={tripId} file={file} say={say} onClose={() => setFinding(null)} onAsk={onAsk} />}
     </section>
     </>

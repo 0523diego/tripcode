@@ -169,7 +169,7 @@ export type Item = ItemBase &
 
 /** What was found out about the place chosen for a meal. Only facts with a source and a date; never a rating. */
 export interface MealChecks {
-  /** The place exists (seen on a map: "osm:node/…", a Google place, or a link the user pasted). */
+  /** The place exists: seen on a map ("osm:node/…", a Google place, a link the user pasted), or named on a web page that was fetched (the page's https address is the source). */
   exists?: Sourced<boolean>;
   /** Open when the meal starts, from the place's own opening hours. Never written as false: a place closed then is not chosen. */
   openAtSlot?: Sourced<boolean>;

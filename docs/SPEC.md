@@ -407,9 +407,10 @@ value here is organising what to book, not paying.
 |---|---|---|
 | 資料檔 | `trips/<id>/food.json`：dishes（每道有 sources；只有 `kind: ai` 的標「AI 的印象」）、taste、votes、places（證據 exists／open-at-slot／recommended…，各有來源與日期）、rejected、attribution。**沒有評分欄位**；未知欄位一律拒絕；web／michelin／guide-wikivoyage 證據一定要有 https 網址 | `src/core/food-types.ts`、`food.ts` |
 | 菜 | 英文 Wikivoyage Eat 段（MediaWiki API 兩次請求，1 次/秒，帶說明性 User-Agent）→ 三種版式的菜名（清單／infobox、斜體加當地文字、散文粗體）＋由字面推的 tags；只存菜名與連結，不存原文（CC BY-SA）；已有的菜不覆蓋 | `src/core/wikivoyage-food.ts`、`cli/wikivoyage.ts` |
-| 店 | Overpass（OSM，ODbL）→ venues（disused/abandoned 不給）→ 去重（40 m＋名稱）→ 對菜（店名／菜系／傳統餐館字）→ 營業時間檢查（打烊前 45 分鐘、跨午夜）→ 以證據排序（推薦、店名對菜、有營業、資料新、有網站；連鎖與遠扣分）；無法對上任何菜就 `generalMode` | `src/core/food-find.ts`、`opening-hours-osm.ts`、`cli/overpass.ts`、`cli/food-service.ts` |
-| 加入行程 | `meal` endpoint 收 `place`（key、name、loc、dishes、evidence）；沒有「存在」證據、壞的 key／座標／slot、多餘欄位（如 rating）一律拒絕；填進「待選」或新增一餐，寫 name／loc／placeId／slot／dishes／checks，可復原 | `vite-plugin-tripcode.ts`、`src/core/food.ts`（`mealFromPlace`）、`source-edit.ts`（`setMealPlace`） |
-| 畫面 | 訂票清單的「找吃的 →」開 `MealDrawer`（菜卡、口味、附近的店、證據徽章、加入／不要／Google 地圖）；`food` endpoint＋`tripcode:food` 事件（不用 glob 載入，免得每次投票都重整頁面）；行程詳細資料的 `MealProof` | `src/viewer/food/*`、`styles/food.css` |
+| 店（主流程，2026-11-10 起） | AI 上網讀網頁後用 `food suggest` 交答案：固定格式（≤3 家，每家 name／address／summary／sources[https]，可有 order／price／watch／hours／website／dishes，拒絕評分與未知欄位）→ 每個來源網頁實際抓下來，必須含店名（讀得到但沒店名 → 退回；完全讀不到 → 收但 tier `check`）→ 地名查詢（Nominatim，1 次/家）取座標，須在這一餐起點 20 km 內 → 寫入 place（key `web-<12 hex>`，證據 `web`/`exists`，附頁面與日期）與 shortlist，畫面即時顯示；key 同名同城市視為同一家（保留照片）；使用者按過「不要這家」的不再收 | `src/core/food-suggest.ts`、`cli/food-suggest.ts`、`cli/commands/food.ts` |
+| 店（舊，不再是主流程） | Overpass（OSM，ODbL）→ venues（disused/abandoned 不給）→ 去重（40 m＋名稱）→ 對菜（店名／菜系／傳統餐館字）→ 營業時間檢查（打烊前 45 分鐘、跨午夜）→ 以證據排序（推薦、店名對菜、有營業、資料新、有網站；連鎖與遠扣分）；無法對上任何菜就 `generalMode` | `src/core/food-find.ts`、`opening-hours-osm.ts`、`cli/overpass.ts`、`cli/food-service.ts` |
+| 加入行程 | `meal` endpoint 收 `place`（key、name、loc、dishes、evidence）；沒有「存在」證據（地圖：來源等於 key；網頁找到的店：key 以 `web-` 開頭，且有 https 網頁的 web／michelin 證據）、壞的 key／座標／slot、多餘欄位（如 rating）一律拒絕；填進「待選」或新增一餐，寫 name／loc／placeId／slot／dishes／checks，可復原 | `vite-plugin-tripcode.ts`、`src/core/food.ts`（`mealFromPlace`）、`source-edit.ts`（`setMealPlace`） |
+| 畫面 | 訂票清單的「找吃的 →」開 `MealDrawer`（1 菜卡、口味、「都可以」；2 請 AI 找店 → 卡片、證據徽章、加入／不要／Google 地圖）；`food` endpoint＋`tripcode:food` 事件（不用 glob 載入，免得每次投票都重整頁面）；行程詳細資料的 `MealProof` | `src/viewer/food/*`、`styles/food.css` |
 
 已知限制：OSM 沒有評分，營業時間只有 16–45% 有寫、很多格式讀不懂（讀不懂就是「未知」）；義大利的店名不會寫菜名，所以多半是 generalMode；Wikivoyage 的菜單是「城市出名吃什麼」，不是「這家店做得好不好」；Google Places 路徑（評分即時顯示、不存檔）還沒做；菜的圖片（Wikidata P18）還沒做；行程頁的空餐列還沒有直接的「找吃的」按鈕（在詳細資料裡有）。
 
